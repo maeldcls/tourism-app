@@ -1,0 +1,30 @@
+{
+  "short_name": "TourismeApp",
+  "name": "Carte Touristique Interactive",
+  "description": "Application de tourisme avec carte interactive et recommandations personnalisées",
+  "icons": [
+    {
+      "src": "favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "logo192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "logo512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#2196F3",
+  "background_color": "#ffffff",
+  "orientation": "any",
+  "categories": ["travel", "tourism", "maps"]
+}
