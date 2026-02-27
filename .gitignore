@@ -1,0 +1,13 @@
+# Environnement
+.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Node
+frontend/tourism-frontend/node_modules/
+
+# Docker
+*.log

@@ -1,6 +1,6 @@
 // Ce code est standard pour les Progressive Web Apps (PWA)
 // Il permet d'enregistrer un Service Worker pour mettre en cache les fichiers
-// et permettre à votre app de fonctionner hors-ligne
+// et permettre à  l'app de fonctionner hors-ligne
 
 const isLocalhost = Boolean(
   window.location.hostname === 'localhost' ||
