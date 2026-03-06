@@ -4,11 +4,16 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: admin
-      POSTGRES_DB: tourism_db
+      POSTGRES_DB: tourism_app_db
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d tourism_app_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   api:
     build: ./backend/api
@@ -16,7 +21,8 @@ services:
       - "8000:8000"
     env_file: .env
     depends_on:
-      - db
+      db:
+        condition: service_healthy
 
   ai:
     build: ./backend/ai
