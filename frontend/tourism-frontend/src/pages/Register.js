@@ -1,0 +1,97 @@
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import { useAuth } from '../context/AuthContext';
+import './Auth.css';
+
+export default function Register() {
+  const { login } = useAuth();
+  const navigate = useNavigate();
+  const [form, setForm] = useState({ email: '', username: '', password: '' });
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  function handleChange(e) {
+    setForm(f => ({ ...f, [e.target.name]: e.target.value }));
+  }
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    try {
+      const { data } = await axios.post('http://localhost:8000/auth/register', form);
+      login(data.user, data.access_token);
+      navigate('/');
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Une erreur est survenue');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="auth-page">
+      <div className="auth-card">
+        <h1 className="auth-title">Inscription</h1>
+        <p className="auth-subtitle">Rejoins la Carte Touristique</p>
+
+        <form onSubmit={handleSubmit} className="auth-form">
+          <div className="auth-field">
+            <label htmlFor="email">Email</label>
+            <input
+              id="email"
+              name="email"
+              type="email"
+              value={form.email}
+              onChange={handleChange}
+              placeholder="votre@email.com"
+              required
+              autoComplete="email"
+            />
+          </div>
+
+          <div className="auth-field">
+            <label htmlFor="username">Nom d'utilisateur</label>
+            <input
+              id="username"
+              name="username"
+              type="text"
+              value={form.username}
+              onChange={handleChange}
+              placeholder="explorateur42"
+              required
+              autoComplete="username"
+            />
+          </div>
+
+          <div className="auth-field">
+            <label htmlFor="password">Mot de passe</label>
+            <input
+              id="password"
+              name="password"
+              type="password"
+              value={form.password}
+              onChange={handleChange}
+              placeholder="••••••••"
+              required
+              minLength={6}
+              autoComplete="new-password"
+            />
+          </div>
+
+          {error && <p className="auth-error">{error}</p>}
+
+          <button type="submit" className="auth-btn" disabled={loading}>
+            {loading ? 'Création…' : 'Créer mon compte'}
+          </button>
+        </form>
+
+        <p className="auth-footer">
+          Déjà un compte ?{' '}
+          <Link to="/login">Se connecter</Link>
+        </p>
+      </div>
+    </div>
+  );
+}
