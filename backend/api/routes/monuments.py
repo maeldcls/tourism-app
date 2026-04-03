@@ -12,10 +12,45 @@ from math import radians, cos, sin, asin, sqrt
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
+from pydantic import BaseModel
 from database import get_db
 import models
 
 router = APIRouter(prefix="/monuments", tags=["Monuments"])
+
+
+class MonumentBody(BaseModel):
+    name: str
+    city: Optional[str] = None
+    description: Optional[str] = None
+    category: Optional[str] = "monument"
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+
+
+@router.post("", status_code=201)
+def create_monument(body: MonumentBody, db: Session = Depends(get_db)):
+    """Crée un monument s'il n'existe pas déjà (même nom + coords proches)."""
+    existing = db.query(models.Monument).filter(
+        models.Monument.name == body.name,
+        models.Monument.latitude == body.latitude,
+        models.Monument.longitude == body.longitude,
+    ).first()
+    if existing:
+        return _monument_to_dict(existing)
+
+    m = models.Monument(
+        name=body.name,
+        city=body.city,
+        description=body.description,
+        category=body.category,
+        latitude=body.latitude,
+        longitude=body.longitude,
+    )
+    db.add(m)
+    db.commit()
+    db.refresh(m)
+    return _monument_to_dict(m)
 
 
 def _haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
@@ -34,6 +69,7 @@ def _monument_to_dict(m: models.Monument) -> dict:
         "name": m.name,
         "description": m.description,
         "city": m.city,
+        "category": m.category or "monument",
         "latitude": m.latitude,
         "longitude": m.longitude,
     }

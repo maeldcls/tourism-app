@@ -27,6 +27,7 @@ class Monument(Base):
     name = Column(String(255), nullable=False)
     description = Column(String)
     city = Column(String(100))
+    category = Column(String(100), default="monument")
     latitude = Column(Float)
     longitude = Column(Float)
     source = Column(BigInteger)

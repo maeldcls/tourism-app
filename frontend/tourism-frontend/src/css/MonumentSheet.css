@@ -1,0 +1,139 @@
+.sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+}
+
+.sheet {
+  position: fixed;
+  bottom: 64px; /* au dessus de la navbar */
+  left: 0;
+  right: 0;
+  background: #fff;
+  border-radius: 20px 20px 0 0;
+  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.14);
+  padding: 0.75rem 1.25rem 1.5rem;
+  z-index: 50;
+  animation: sheet-slide-up 0.25s cubic-bezier(0.32, 0.72, 0, 1);
+  max-height: 55vh;
+  overflow-y: auto;
+}
+
+@keyframes sheet-slide-up {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+
+.sheet-handle {
+  width: 36px;
+  height: 4px;
+  background: #cfd8dc;
+  border-radius: 2px;
+  margin: 0 auto 0.85rem;
+}
+
+.sheet-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.6rem;
+}
+
+.sheet-tag {
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.sheet-close {
+  background: #f5f5f5;
+  border: none;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #607d8b;
+  padding: 0;
+}
+
+.sheet-close svg {
+  width: 16px;
+  height: 16px;
+}
+
+.sheet-title {
+  margin: 0 0 0.35rem;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #1a2332;
+  line-height: 1.3;
+}
+
+.sheet-location {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: #78909c;
+  font-size: 0.85rem;
+  margin-bottom: 0.75rem;
+}
+
+.sheet-description {
+  margin: 0 0 0.75rem;
+  font-size: 0.9rem;
+  color: #455a64;
+  line-height: 1.55;
+}
+
+.sheet-coords {
+  font-size: 0.72rem;
+  color: #b0bec5;
+  font-family: monospace;
+  margin-bottom: 1rem;
+}
+
+.sheet-website {
+  display: inline-block;
+  font-size: 0.82rem;
+  color: #2196f3;
+  margin-bottom: 0.5rem;
+}
+
+.sheet-save {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  background: #2196f3;
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.sheet-save:hover:not(:disabled) {
+  background: #1976d2;
+}
+
+.sheet-save:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.sheet-save--done {
+  background: #388e3c;
+}
+
+.sheet-save--done:hover:not(:disabled) {
+  background: #388e3c;
+}
