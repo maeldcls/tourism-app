@@ -170,11 +170,11 @@ function MapEventsHandler({ onBoundsChange, onFetchNeeded, debounceRef }) {
   return null;
 }
 
-function FlyToUser({ position, skip }) {
+function FlyToUser({ position }) {
   const map = useMap();
   useEffect(() => {
-    if (position && !skip) map.flyTo(position, 15, { duration: 1.2 });
-  }, [position, skip, map]);
+    if (position) map.flyTo(position, 15, { duration: 1.2 });
+  }, [position, map]);
   return null;
 }
 
@@ -299,7 +299,7 @@ export default function MapPage() {
         className="mappage-map"
       >
         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-        {userPos && <FlyToUser position={userPos} skip={!!savedPos} />}
+        {userPos && <FlyToUser position={userPos} />}
         <MapEventsHandler
           onBoundsChange={setMapView}
           onFetchNeeded={loadNewCells}

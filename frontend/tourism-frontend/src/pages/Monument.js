@@ -1,10 +1,44 @@
+import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import '../css/Monument.css';
+
+const API = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
 export default function Monument() {
   const { state } = useLocation();
   const navigate  = useNavigate();
   const monument  = state?.monument;
+
+  const [dbImages, setDbImages] = useState([]);
+  const [activeImg, setActiveImg] = useState(0);
+
+  useEffect(() => {
+    if (!monument?.id) return;
+
+    const body = {
+      osm_id:             monument.id,
+      name:               monument.name,
+      city:               monument.tags?.['addr:city'] || monument.tags?.['addr:town'] || null,
+      description:        monument.tags?.description || null,
+      category:           monument.category || 'monument',
+      latitude:           monument.latitude,
+      longitude:          monument.longitude,
+      wikimedia_commons:  monument.tags?.wikimedia_commons || null,
+      wikipedia:          monument.tags?.wikipedia || null,
+      image:              monument.tags?.image || null,
+    };
+
+    fetch(`${API}/monuments/upsert`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data?.images?.length) setDbImages(data.images);
+      })
+      .catch(() => {});
+  }, [monument]);
 
   if (!monument) {
     return (
@@ -29,6 +63,11 @@ export default function Monument() {
     ? `https://commons.wikimedia.org/wiki/${encodeURIComponent(tags.wikimedia_commons)}`
     : null;
 
+  // Images à afficher : celles en DB en priorité, sinon tag OSM direct
+  const images = dbImages.length > 0
+    ? dbImages
+    : tags.image ? [tags.image] : [];
+
   return (
     <div className="monu-page">
       <button className="monu-back" onClick={() => navigate(-1)}>
@@ -38,10 +77,27 @@ export default function Monument() {
         Retour
       </button>
 
-      {/* Image */}
-      {tags.image && (
+      {/* Images */}
+      {images.length > 0 && (
         <div className="monu-image-wrap">
-          <img src={tags.image} alt={monument.name} className="monu-image" />
+          <img
+            src={images[activeImg]}
+            alt={monument.name}
+            className="monu-image"
+            onError={e => { e.target.style.display = 'none'; }}
+          />
+          {images.length > 1 && (
+            <div className="monu-image-dots">
+              {images.map((_, i) => (
+                <button
+                  key={i}
+                  className={`monu-image-dot${i === activeImg ? ' monu-image-dot--active' : ''}`}
+                  onClick={() => setActiveImg(i)}
+                  aria-label={`Image ${i + 1}`}
+                />
+              ))}
+            </div>
+          )}
         </div>
       )}
 

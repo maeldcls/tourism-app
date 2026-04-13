@@ -1,5 +1,5 @@
 from datetime import datetime
-from sqlalchemy import BigInteger, Column, Float, ForeignKey, String, TIMESTAMP
+from sqlalchemy import BigInteger, Column, Float, ForeignKey, String, TIMESTAMP, Text
 from sqlalchemy.orm import relationship
 from database import Base
 
@@ -30,11 +30,13 @@ class Monument(Base):
     category = Column(String(100), default="monument")
     latitude = Column(Float)
     longitude = Column(Float)
+    osm_id = Column(BigInteger, unique=True, nullable=True, index=True)
     source = Column(BigInteger)
     embedding = Column(BigInteger)
     created_at = Column(TIMESTAMP, default=datetime.utcnow)
 
     visits = relationship("Visit", back_populates="monument")
+    images = relationship("MonumentImage", back_populates="monument", cascade="all, delete-orphan")
 
 
 class Visit(Base):
@@ -83,6 +85,16 @@ class XpHistory(Base):
     created_at = Column(TIMESTAMP, default=datetime.utcnow)
 
     user = relationship("User", back_populates="xp_history")
+
+
+class MonumentImage(Base):
+    __tablename__ = "monument_images"
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    monument_id = Column(BigInteger, ForeignKey("monuments.id"), nullable=False)
+    image_url = Column(Text, nullable=False)
+
+    monument = relationship("Monument", back_populates="images")
 
 
 class MonumentTheme(Base):

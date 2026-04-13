@@ -7,7 +7,9 @@ GET  /monuments              → page Destinations : liste tous les monuments
 GET  /monuments/nearby       → page MapPage : monuments proches d'une position GPS
                                ?lat=48.8&lon=2.3&radius_km=5
 GET  /monuments/{id}         → page Monument : détail d'un monument
+POST /monuments/upsert       → crée ou retourne le monument (par osm_id), fetch images si nécessaire
 """
+import httpx
 from math import radians, cos, sin, asin, sqrt
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -28,6 +30,134 @@ class MonumentBody(BaseModel):
     longitude: Optional[float] = None
 
 
+class MonumentUpsertBody(BaseModel):
+    osm_id: int
+    name: str
+    city: Optional[str] = None
+    description: Optional[str] = None
+    category: Optional[str] = "monument"
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    # Tags OSM utiles pour trouver des images
+    wikimedia_commons: Optional[str] = None
+    wikipedia: Optional[str] = None
+    image: Optional[str] = None
+
+
+# ── Helpers images ─────────────────────────────────────────────────────────────
+
+async def _fetch_wikimedia_image_url(page_title: str) -> Optional[str]:
+    """Récupère l'URL de l'image principale d'une page Wikimedia Commons."""
+    try:
+        url = "https://en.wikipedia.org/w/api.php"
+        params = {
+            "action": "query",
+            "titles": f"File:{page_title}" if not page_title.startswith("File:") else page_title,
+            "prop": "imageinfo",
+            "iiprop": "url",
+            "format": "json",
+        }
+        async with httpx.AsyncClient(timeout=10) as client:
+            res = await client.get(url, params=params)
+            data = res.json()
+        pages = data.get("query", {}).get("pages", {})
+        for page in pages.values():
+            info = page.get("imageinfo", [])
+            if info:
+                return info[0].get("url")
+    except Exception:
+        pass
+    return None
+
+
+async def _fetch_wikipedia_thumbnail(wiki_tag: str) -> Optional[str]:
+    """Récupère la miniature de la page Wikipedia (format 'fr:Titre_page')."""
+    try:
+        # Extraire la langue et le titre
+        if ":" in wiki_tag:
+            lang, title = wiki_tag.split(":", 1)
+        else:
+            lang, title = "fr", wiki_tag
+
+        url = f"https://{lang}.wikipedia.org/w/api.php"
+        params = {
+            "action": "query",
+            "titles": title,
+            "prop": "pageimages",
+            "pithumbsize": 800,
+            "format": "json",
+        }
+        async with httpx.AsyncClient(timeout=10) as client:
+            res = await client.get(url, params=params)
+            data = res.json()
+        pages = data.get("query", {}).get("pages", {})
+        for page in pages.values():
+            thumb = page.get("thumbnail", {})
+            if thumb.get("source"):
+                return thumb["source"]
+    except Exception:
+        pass
+    return None
+
+
+async def _collect_images(body: MonumentUpsertBody) -> list[str]:
+    """Retourne une liste d'URLs d'images pour le monument."""
+    urls: list[str] = []
+
+    # 1. Image directe dans les tags OSM
+    if body.image:
+        urls.append(body.image)
+
+    # 2. Wikipedia thumbnail
+    if body.wikipedia and len(urls) < 3:
+        thumb = await _fetch_wikipedia_thumbnail(body.wikipedia)
+        if thumb:
+            urls.append(thumb)
+
+    # 3. Wikimedia Commons
+    if body.wikimedia_commons and len(urls) < 3:
+        img = await _fetch_wikimedia_image_url(body.wikimedia_commons)
+        if img:
+            urls.append(img)
+
+    return urls
+
+
+# ── POST /monuments/upsert ─────────────────────────────────────────────────────
+@router.post("/upsert")
+async def upsert_monument(body: MonumentUpsertBody, db: Session = Depends(get_db)):
+    """
+    Crée le monument s'il n'existe pas (par osm_id), sinon retourne l'existant.
+    Fetche les images la première fois uniquement.
+    """
+    m = db.query(models.Monument).filter(models.Monument.osm_id == body.osm_id).first()
+
+    if not m:
+        m = models.Monument(
+            osm_id=body.osm_id,
+            name=body.name,
+            city=body.city,
+            description=body.description,
+            category=body.category,
+            latitude=body.latitude,
+            longitude=body.longitude,
+        )
+        db.add(m)
+        db.commit()
+        db.refresh(m)
+
+        # Fetch images uniquement à la création
+        image_urls = await _collect_images(body)
+        for url in image_urls:
+            db.add(models.MonumentImage(monument_id=m.id, image_url=url))
+        if image_urls:
+            db.commit()
+            db.refresh(m)
+
+    return _monument_to_dict(m, include_images=True)
+
+
+# ── POST /monuments ────────────────────────────────────────────────────────────
 @router.post("", status_code=201)
 def create_monument(body: MonumentBody, db: Session = Depends(get_db)):
     """Crée un monument s'il n'existe pas déjà (même nom + coords proches)."""
@@ -63,9 +193,10 @@ def _haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     return 2 * R * asin(sqrt(a))
 
 
-def _monument_to_dict(m: models.Monument) -> dict:
-    return {
+def _monument_to_dict(m: models.Monument, include_images: bool = False) -> dict:
+    d = {
         "id": m.id,
+        "osm_id": m.osm_id,
         "name": m.name,
         "description": m.description,
         "city": m.city,
@@ -73,6 +204,9 @@ def _monument_to_dict(m: models.Monument) -> dict:
         "latitude": m.latitude,
         "longitude": m.longitude,
     }
+    if include_images:
+        d["images"] = [img.image_url for img in m.images]
+    return d
 
 
 # ── GET /monuments ─────────────────────────────────────────────────────────────
@@ -126,6 +260,6 @@ def get_monument(monument_id: int, db: Session = Depends(get_db)):
 
     visit_count = len(m.visits)
     return {
-        **_monument_to_dict(m),
+        **_monument_to_dict(m, include_images=True),
         "visit_count": visit_count,
     }
