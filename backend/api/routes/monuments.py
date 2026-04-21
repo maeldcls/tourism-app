@@ -224,6 +224,23 @@ def get_monuments(
     return [_monument_to_dict(m) for m in monuments]
 
 
+# ── GET /monuments/bbox ────────────────────────────────────────────────────────
+# Page : MapPage — monuments dans une bounding box (BETWEEN sur lat/lon, rapide avec index)
+@router.get("/bbox")
+def get_monuments_bbox(
+    south: float = Query(..., description="Latitude sud de la bbox"),
+    west:  float = Query(..., description="Longitude ouest de la bbox"),
+    north: float = Query(..., description="Latitude nord de la bbox"),
+    east:  float = Query(..., description="Longitude est de la bbox"),
+    db: Session = Depends(get_db),
+):
+    monuments = db.query(models.Monument).filter(
+        models.Monument.latitude.between(south, north),
+        models.Monument.longitude.between(west, east),
+    ).limit(500).all()
+    return [_monument_to_dict(m) for m in monuments]
+
+
 # ── GET /monuments/nearby ──────────────────────────────────────────────────────
 # Page : MapPage — monuments dans un rayon autour de la position GPS du user
 @router.get("/nearby")
