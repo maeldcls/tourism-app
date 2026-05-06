@@ -26,7 +26,9 @@ function savePos(lat, lng, zoom) {
   localStorage.setItem(POS_KEY, JSON.stringify({ center: [lat, lng], zoom }));
 }
 
-// ── Catégories OSM ────────────────────────────────────────────────────────────
+const API = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+
+// ── Catégories ────────────────────────────────────────────────────────────────
 const CATEGORIES = {
   monument:   { color: '#f57c00', label: 'Monument'   },
   musee:      { color: '#7b1fa2', label: 'Musée'      },
@@ -36,19 +38,6 @@ const CATEGORIES = {
   restaurant: { color: '#e53935', label: 'Restaurant' },
   autre:      { color: '#2196f3', label: 'Autre'      },
 };
-
-function osmTagsToCategory(tags) {
-  if (!tags) return 'autre';
-  const { tourism, amenity, leisure, historic, natural } = tags;
-  if (tourism === 'museum')                                        return 'musee';
-  if (tourism === 'attraction' || historic)                        return 'monument';
-  if (amenity === 'place_of_worship')                              return 'eglise';
-  if (amenity === 'restaurant' || amenity === 'cafe' || amenity === 'bar') return 'restaurant';
-  if (leisure === 'park' || leisure === 'garden')                  return 'parc';
-  if (natural)                                                     return 'nature';
-  if (tourism)                                                     return 'monument';
-  return 'autre';
-}
 
 function getCategory(key) {
   return CATEGORIES[key] || CATEGORIES.autre;
@@ -89,49 +78,12 @@ function cellsInBounds({ south, west, north, east }) {
   return cells;
 }
 
-// ── Requête Overpass sur une bbox ─────────────────────────────────────────────
-const OVERPASS_MIRRORS = [
-  'https://overpass-api.de/api/interpreter',
-  'https://overpass.kumi.systems/api/interpreter',
-  'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
-];
-
-async function fetchOverpassBbox(south, west, north, east) {
-  const query = `
-    [out:json][timeout:30][bbox:${south},${west},${north},${east}];
-    (
-      node["tourism"~"attraction|museum|artwork|viewpoint"];
-      node["historic"~"monument|memorial|castle|ruins"];
-      node["leisure"~"park|garden"];
-      node["amenity"="place_of_worship"];
-    );
-    out body 100;
-  `;
-
-  for (const url of OVERPASS_MIRRORS) {
-    try {
-      const res = await fetch(url, {
-        method: 'POST',
-        body: query,
-        signal: AbortSignal.timeout(35_000),
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      return data.elements
-        .filter(e => e.tags?.name)
-        .map(e => ({
-          id:        e.id,
-          name:      e.tags.name,
-          latitude:  e.lat,
-          longitude: e.lon,
-          category:  osmTagsToCategory(e.tags),
-          tags:      e.tags,
-        }));
-    } catch {
-      // essai du miroir suivant
-    }
-  }
-  throw new Error('Tous les serveurs Overpass sont indisponibles');
+// ── Requête bbox vers notre API ───────────────────────────────────────────────
+async function fetchApiBbox(south, west, north, east) {
+  const url = `${API}/monuments/bbox?south=${south}&west=${west}&north=${north}&east=${east}`;
+  const res = await fetch(url, { signal: AbortSignal.timeout(10_000) });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return await res.json(); // [{ id, name, latitude, longitude, category, city, description }]
 }
 
 // ── Gestionnaire d'événements map (inside MapContainer) ───────────────────────
@@ -194,6 +146,8 @@ export default function MapPage() {
   const fetchedCells = useRef(new Set()); // clés de cellules déjà chargées
   const debounceTimer = useRef(null);
 
+  
+
   // Géolocalisation initiale — on garde la position utilisateur pour le marqueur
   useEffect(() => {
     navigator.geolocation?.getCurrentPosition(
@@ -223,7 +177,7 @@ export default function MapPage() {
       const north = Math.max(...allB.map(b => b.north));
       const east  = Math.max(...allB.map(b => b.east));
 
-      const results = await fetchOverpassBbox(south, west, north, east);
+      const results = await fetchApiBbox(south, west, north, east);
       let changed = false;
       results.forEach(poi => {
         if (!poisMapRef.current.has(poi.id)) {

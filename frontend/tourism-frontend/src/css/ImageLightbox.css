@@ -1,0 +1,128 @@
+.lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(0, 0, 0, 0.92);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  animation: lightbox-in 0.18s ease;
+}
+
+@keyframes lightbox-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.lightbox-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: rgba(255, 255, 255, 0.15);
+  border: none;
+  color: #fff;
+  font-size: 1.25rem;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+  z-index: 1;
+}
+
+.lightbox-close:hover { background: rgba(255, 255, 255, 0.28); }
+
+/* Image principale */
+.lightbox-content {
+  position: relative;
+  display: flex;
+  align-items: center;
+  max-width: 95vw;
+  /* réserve la place pour le filmstrip */
+  max-height: calc(100vh - 160px);
+}
+
+.lightbox-img {
+  max-width: 95vw;
+  max-height: calc(100vh - 160px);
+  object-fit: contain;
+  border-radius: 4px;
+  display: block;
+}
+
+/* Flèches */
+.lightbox-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(255, 255, 255, 0.18);
+  border: none;
+  color: #fff;
+  font-size: 2.2rem;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  transition: background 0.15s;
+  z-index: 1;
+}
+
+.lightbox-nav:hover { background: rgba(255, 255, 255, 0.32); }
+.lightbox-nav--prev { left: -58px; }
+.lightbox-nav--next { right: -58px; }
+
+/* Compteur */
+.lightbox-counter {
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  margin-top: 0.5rem;
+}
+
+/* Filmstrip */
+.lightbox-filmstrip {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding: 0.5rem 1rem;
+  max-width: 95vw;
+}
+
+.lightbox-filmstrip::-webkit-scrollbar { display: none; }
+
+.lightbox-film-thumb {
+  flex-shrink: 0;
+  width: 56px;
+  height: 56px;
+  border-radius: 6px;
+  overflow: hidden;
+  padding: 0;
+  border: 2px solid transparent;
+  cursor: pointer;
+  background: #333;
+  opacity: 0.55;
+  transition: opacity 0.15s, border-color 0.15s;
+}
+
+.lightbox-film-thumb:hover { opacity: 0.85; }
+
+.lightbox-film-thumb--active {
+  border-color: #fff;
+  opacity: 1;
+}
+
+.lightbox-film-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
