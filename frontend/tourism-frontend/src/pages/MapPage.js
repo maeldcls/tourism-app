@@ -97,25 +97,29 @@ function MapEventsHandler({ onBoundsChange, onFetchNeeded, debounceRef }) {
   fetchRef.current = onFetchNeeded;
 
   useEffect(() => {
+    let alive = true;
+
     function handle() {
-      const b    = map.getBounds();
-      const zoom = map.getZoom();
-      const c    = map.getCenter();
+      const zoom   = map.getZoom();
+      const b      = map.getBounds();
+      const bounds = { south: b.getSouth(), west: b.getWest(), north: b.getNorth(), east: b.getEast() };
+      const c      = map.getCenter();
       savePos(c.lat, c.lng, zoom);
-      cbRef.current({
-        zoom,
-        bounds: { south: b.getSouth(), west: b.getWest(), north: b.getNorth(), east: b.getEast() },
-      });
+      cbRef.current({ zoom, bounds });
       clearTimeout(debounceRef.current);
-      debounceRef.current = setTimeout(() => fetchRef.current(map), 800);
+      debounceRef.current = setTimeout(() => {
+        if (alive) fetchRef.current(zoom, bounds);
+      }, 800);
     }
 
     handle(); // chargement initial
     map.on('moveend', handle);
     map.on('zoomend', handle);
     return () => {
+      alive = false;
       map.off('moveend', handle);
       map.off('zoomend', handle);
+      clearTimeout(debounceRef.current);
     };
   }, [map, debounceRef]);
 
@@ -157,12 +161,9 @@ export default function MapPage() {
   }, []);
 
   // Chargement uniquement des cellules nouvelles dans la vue
-  const loadNewCells = useCallback(async (map) => {
-    const zoom = map.getZoom();
+  const loadNewCells = useCallback(async (zoom, bounds) => {
     if (zoom < MIN_ZOOM) return;
 
-    const b      = map.getBounds();
-    const bounds = { south: b.getSouth(), west: b.getWest(), north: b.getNorth(), east: b.getEast() };
     const cells    = cellsInBounds(bounds);
     const newCells = cells.filter(k => !fetchedCells.current.has(k));
     if (newCells.length === 0) return; // tout déjà en cache → instantané
