@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import '../css/MonumentSheet.css';
 import ImageLightbox from './ImageLightbox';
+import AddToTripDialog from './AddToTripDialog';
 import { useMonumentImages } from '../hooks/useMonumentImages';
 
 const MAX_VISIBLE_THUMBS = 4;
@@ -9,6 +10,7 @@ const MAX_VISIBLE_THUMBS = 4;
 export default function MonumentSheet({ monument, onClose }) {
   const navigate = useNavigate();
   const [lightboxIndex, setLightboxIndex] = useState(null);
+  const [showTripDialog, setShowTripDialog] = useState(false);
   const { images, loading } = useMonumentImages(monument);
 
   if (!monument) return null;
@@ -90,6 +92,16 @@ export default function MonumentSheet({ monument, onClose }) {
         </div>
 
         <button
+          className="sheet-save"
+          onClick={() => setShowTripDialog(true)}
+        >
+          <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
+            <path d="M21 3L3 10.53v.98l6.84 2.65L12.48 21h.98L21 3z" />
+          </svg>
+          Ajouter à un trajet
+        </button>
+
+        <button
           className="sheet-detail"
           onClick={() => navigate('/monument', { state: { monument } })}
         >
@@ -106,6 +118,13 @@ export default function MonumentSheet({ monument, onClose }) {
           index={lightboxIndex}
           onClose={() => setLightboxIndex(null)}
           onChange={setLightboxIndex}
+        />
+      )}
+
+      {showTripDialog && (
+        <AddToTripDialog
+          monument={monument}
+          onClose={() => setShowTripDialog(false)}
         />
       )}
     </>

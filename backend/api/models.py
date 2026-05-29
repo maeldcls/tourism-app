@@ -1,5 +1,5 @@
 from datetime import datetime
-from sqlalchemy import BigInteger, Column, Float, ForeignKey, String, TIMESTAMP, Text
+from sqlalchemy import BigInteger, Boolean, Column, Float, ForeignKey, String, TIMESTAMP, Text
 from sqlalchemy.orm import relationship
 from database import Base
 
@@ -19,6 +19,7 @@ class User(Base):
     visits = relationship("Visit", back_populates="user")
     xp_history = relationship("XpHistory", back_populates="user")
     user_badges = relationship("UserBadge", back_populates="user")
+    trips = relationship("Trip", back_populates="user")
 
 
 class Monument(Base):
@@ -38,6 +39,7 @@ class Monument(Base):
 
     visits = relationship("Visit", back_populates="monument")
     images = relationship("MonumentImage", back_populates="monument", cascade="all, delete-orphan")
+    trip_monuments = relationship("TripMonument", back_populates="monument")
 
 
 class Visit(Base):
@@ -96,6 +98,35 @@ class MonumentImage(Base):
     image_url = Column(Text, nullable=False)
 
     monument = relationship("Monument", back_populates="images")
+
+
+class Trip(Base):
+    __tablename__ = "trips"
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    user_id = Column(BigInteger, ForeignKey("users.id"), nullable=False)
+    name = Column(String(255), nullable=False)
+    description = Column(String, nullable=True)
+    start_date = Column(TIMESTAMP, nullable=True)
+    end_date = Column(TIMESTAMP, nullable=True)
+    status = Column(String(50), default="planned")
+    created_at = Column(TIMESTAMP, default=datetime.utcnow)
+
+    user = relationship("User", back_populates="trips")
+    trip_monuments = relationship("TripMonument", back_populates="trip", cascade="all, delete-orphan")
+
+
+class TripMonument(Base):
+    __tablename__ = "trip_monuments"
+
+    trip_id = Column(BigInteger, ForeignKey("trips.id"), primary_key=True)
+    monument_id = Column(BigInteger, ForeignKey("monuments.id"), primary_key=True)
+    order = Column(BigInteger, default=0)
+    is_visited = Column(Boolean, default=False)
+    added_at = Column(TIMESTAMP, default=datetime.utcnow)
+
+    trip = relationship("Trip", back_populates="trip_monuments")
+    monument = relationship("Monument", back_populates="trip_monuments")
 
 
 class MonumentTheme(Base):
