@@ -1,5 +1,5 @@
 from datetime import datetime
-from sqlalchemy import BigInteger, Boolean, Column, Float, ForeignKey, String, TIMESTAMP, Text
+from sqlalchemy import BigInteger, Boolean, Column, Float, ForeignKey, String, TIMESTAMP, Text, UniqueConstraint
 from sqlalchemy.orm import relationship
 from database import Base
 
@@ -14,6 +14,7 @@ class User(Base):
     google_id = Column(String(255), nullable=True, unique=True, index=True)
     xp = Column(BigInteger, default=0)
     level = Column(BigInteger, default=1)
+    taste_profile = Column(Text, nullable=True)
     created_at = Column(TIMESTAMP, default=datetime.utcnow)
 
     visits = relationship("Visit", back_populates="user")
@@ -34,12 +35,13 @@ class Monument(Base):
     longitude = Column(Float)
     osm_id = Column(BigInteger, unique=True, nullable=True, index=True)
     source = Column(BigInteger)
-    embedding = Column(BigInteger)
+    embedding = Column(Text, nullable=True)
     created_at = Column(TIMESTAMP, default=datetime.utcnow)
 
     visits = relationship("Visit", back_populates="monument")
     images = relationship("MonumentImage", back_populates="monument", cascade="all, delete-orphan")
     trip_monuments = relationship("TripMonument", back_populates="monument")
+    themes = relationship("MonumentTheme", back_populates="monument", cascade="all, delete-orphan")
 
 
 class Visit(Base):
@@ -133,5 +135,10 @@ class MonumentTheme(Base):
     __tablename__ = "monuments_theme"
 
     id = Column(BigInteger, primary_key=True, autoincrement=True)
-    theme = Column(String(100))
-    confidence = Column(Float)
+    monument_id = Column(BigInteger, ForeignKey("monuments.id"), nullable=False)
+    theme = Column(String(100), nullable=False)
+    confidence = Column(Float, nullable=False)
+
+    monument = relationship("Monument", back_populates="themes")
+
+    __table_args__ = (UniqueConstraint("monument_id", "theme", name="uq_monument_theme"),)
