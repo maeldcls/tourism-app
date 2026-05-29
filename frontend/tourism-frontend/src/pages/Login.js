@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { GoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../context/AuthContext';
 import '../css/Auth.css';
 
@@ -30,11 +31,37 @@ export default function Login() {
     }
   }
 
+  async function handleGoogleSuccess(credentialResponse) {
+    setError('');
+    try {
+      const { data } = await axios.post('http://localhost:8000/auth/google', {
+        token: credentialResponse.credential,
+      });
+      login(data.user, data.access_token);
+      navigate('/');
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Erreur de connexion Google');
+    }
+  }
+
   return (
     <div className="auth-page">
       <div className="auth-card">
         <h1 className="auth-title">Connexion</h1>
         <p className="auth-subtitle">Bienvenue sur la Carte Touristique</p>
+
+        <div className="auth-google">
+          <GoogleLogin
+            onSuccess={handleGoogleSuccess}
+            onError={() => setError('Connexion Google annulée')}
+            width="100%"
+            text="signin_with"
+            shape="rectangular"
+            logo_alignment="left"
+          />
+        </div>
+
+        <div className="auth-divider"><span>ou</span></div>
 
         <form onSubmit={handleSubmit} className="auth-form">
           <div className="auth-field">

@@ -1,0 +1,141 @@
+.profile-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  background: linear-gradient(160deg, #e8f5e9 0%, #e3f2fd 60%, #fff8e1 100%);
+  padding: 2rem 1rem 5rem;
+}
+
+.profile-card {
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 6px 32px rgba(46, 125, 50, 0.10);
+  padding: 2.5rem 2rem;
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.profile-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #43a047, #1e88e5);
+  color: #fff;
+  font-size: 2rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 0.5rem;
+  letter-spacing: 0.05em;
+  box-shadow: 0 4px 16px rgba(67, 160, 71, 0.25);
+}
+
+.profile-username {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1b5e20;
+}
+
+.profile-email {
+  margin: 0 0 1rem;
+  color: #78909c;
+  font-size: 0.9rem;
+}
+
+.profile-stats {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  background: #f1f8e9;
+  border-radius: 14px;
+  padding: 1rem 1.5rem;
+  width: 100%;
+  justify-content: space-around;
+  margin-bottom: 1rem;
+}
+
+.profile-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.stat-value {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #2e7d32;
+}
+
+.stat-label {
+  font-size: 0.72rem;
+  color: #78909c;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.profile-stat-divider {
+  width: 1px;
+  height: 36px;
+  background: #c8e6c9;
+}
+
+.profile-xp-bar {
+  width: 100%;
+  margin-bottom: 1.5rem;
+}
+
+.xp-bar-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.78rem;
+  color: #78909c;
+  margin-bottom: 0.4rem;
+}
+
+.xp-bar-track {
+  height: 8px;
+  border-radius: 99px;
+  background: #e0e0e0;
+  overflow: hidden;
+}
+
+.xp-bar-fill {
+  height: 100%;
+  border-radius: 99px;
+  background: linear-gradient(90deg, #43a047, #1e88e5);
+  transition: width 0.5s ease;
+}
+
+.xp-bar-pct {
+  text-align: right;
+  margin: 0.3rem 0 0;
+  font-size: 0.78rem;
+  color: #90a4ae;
+}
+
+.profile-logout-btn {
+  margin-top: 0.5rem;
+  width: 100%;
+  padding: 0.75rem;
+  background: transparent;
+  color: #c62828;
+  font-size: 0.95rem;
+  font-weight: 600;
+  border: 1.5px solid #ef9a9a;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.profile-logout-btn:hover {
+  background: #ffebee;
+  border-color: #c62828;
+}
