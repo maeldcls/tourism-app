@@ -1,0 +1,26 @@
+name: CI Backend AI
+
+on:
+  workflow_call:
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: backend/ai/requirements.txt
+
+      - name: Install dependencies
+        working-directory: backend/ai
+        run: pip install -r requirements.txt
+
+      - name: Run tests
+        working-directory: backend/ai
+        run: pytest tests/ -v

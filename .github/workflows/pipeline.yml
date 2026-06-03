@@ -1,0 +1,159 @@
+name: Pipeline CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # ============================================================
+  # 1. DÉTECTION DES CHANGEMENTS
+  #    Analyse quels dossiers ont été modifiés dans le commit.
+  #    Les jobs suivants utilisent ces outputs pour décider s'ils doivent tourner.
+  # ============================================================
+  changes:
+    name: Detect changed services
+    runs-on: ubuntu-latest
+    outputs:
+      frontend: ${{ steps.filter.outputs.frontend }}
+      api: ${{ steps.filter.outputs.api }}
+      ai: ${{ steps.filter.outputs.ai }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            frontend:
+              - 'frontend/**'
+            api:
+              - 'backend/api/**'
+            ai:
+              - 'backend/ai/**'
+
+  # ============================================================
+  # 2. CI — TESTS (parallèles, conditionnels au service modifié)
+  # ============================================================
+  ci-frontend:
+    name: CI — Frontend
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
+    uses: ./.github/workflows/ci-frontend.yml
+
+  ci-backend-api:
+    name: CI — Backend API
+    needs: changes
+    if: needs.changes.outputs.api == 'true'
+    uses: ./.github/workflows/ci-backend-api.yml
+
+  ci-backend-ai:
+    name: CI — Backend AI
+    needs: changes
+    if: needs.changes.outputs.ai == 'true'
+    uses: ./.github/workflows/ci-backend-ai.yml
+
+  # ============================================================
+  # 3. BUILD & PUSH DOCKER HUB
+  #    Ne tourne que sur la branche main, après que tous les CI passent.
+  #    Si un CI a échoué, cette étape est annulée.
+  #    Seules les images des services modifiés sont rebuildées.
+  # ============================================================
+  build-push:
+    name: Build & Push — Docker Hub
+    needs: [changes, ci-frontend, ci-backend-api, ci-backend-ai]
+    if: |
+      github.ref == 'refs/heads/main' &&
+      !failure() && !cancelled() &&
+      (needs.changes.outputs.frontend == 'true' || needs.changes.outputs.api == 'true' || needs.changes.outputs.ai == 'true')
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Login Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build & push — API
+        if: needs.changes.outputs.api == 'true'
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend/api
+          push: true
+          tags: |
+            maeldcls/tourism-api:latest
+            maeldcls/tourism-api:sha-${{ github.sha }}
+
+      - name: Build & push — AI
+        if: needs.changes.outputs.ai == 'true'
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend/ai
+          push: true
+          tags: |
+            maeldcls/tourism-ai:latest
+            maeldcls/tourism-ai:sha-${{ github.sha }}
+
+      - name: Build & push — Frontend
+        if: needs.changes.outputs.frontend == 'true'
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend/tourism-frontend
+          push: true
+          build-args: |
+            REACT_APP_GOOGLE_CLIENT_ID=${{ secrets.REACT_APP_GOOGLE_CLIENT_ID }}
+          tags: |
+            maeldcls/tourism-frontend:latest
+            maeldcls/tourism-frontend:sha-${{ github.sha }}
+
+  # ============================================================
+  # 4. DÉPLOIEMENT SSH — RUNCLOUD
+  #    Copie docker-compose.prod.yml sur le serveur,
+  #    pull les nouvelles images et redémarre les containers.
+  #    Le fichier .env doit exister sur le serveur (créé une seule fois manuellement).
+  # ============================================================
+  deploy:
+    name: Deploy — RunCloud
+    needs: build-push
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Copy docker-compose.prod.yml to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: docker-compose.prod.yml
+          target: /var/www/html
+
+      - name: Deploy on server
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            set -e
+            cd /var/www/html
+
+            # Pull les nouvelles images depuis Docker Hub
+            docker compose -f docker-compose.prod.yml pull
+
+            # Redémarre les containers (--remove-orphans supprime les vieux containers inutiles)
+            docker compose -f docker-compose.prod.yml up -d --remove-orphans
+
+            # Applique les migrations de base de données
+            docker compose -f docker-compose.prod.yml exec -T api alembic upgrade head
+
+            # Supprime les anciennes images non utilisées pour libérer de l'espace disque
+            docker image prune -f
