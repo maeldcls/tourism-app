@@ -2,6 +2,8 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import axios from 'axios';
 
+import { GoogleOAuthProvider } from '@react-oauth/google';
+
 import Register from './Register';
 import { AuthProvider } from '../context/AuthContext';
 
@@ -15,9 +17,11 @@ jest.mock('react-router-dom', () => ({
 
 function renderRegister() {
   return render(
-    <AuthProvider>
-      <Register />
-    </AuthProvider>
+    <GoogleOAuthProvider clientId="test-client-id">
+      <AuthProvider>
+        <Register />
+      </AuthProvider>
+    </GoogleOAuthProvider>
   );
 }
 
