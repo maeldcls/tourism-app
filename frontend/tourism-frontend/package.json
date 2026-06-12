@@ -31,6 +31,9 @@
     ]
   },
   "jest": {
+    "transformIgnorePatterns": [
+      "/node_modules/(?!(react-leaflet|@react-leaflet)/)"
+    ],
     "moduleNameMapper": {
       "^react-router-dom$": "<rootDir>/node_modules/react-router-dom/dist/index.js",
       "^react-router$": "<rootDir>/node_modules/react-router/dist/development/index.js",
