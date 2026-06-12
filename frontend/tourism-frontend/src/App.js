@@ -30,7 +30,7 @@ function Layout() {
         <Route path="/travel" element={<Travel />} />
         <Route path="/monument" element={<Monument />} />
         <Route path="/profile" element={<Profile />} />
-        <Route path="/stats" element={<Stats />} />
+        {/* <Route path="/stats" element={<Stats />} /> */}
       </Routes>
       {showNavbar && <Navbar />}
     </>
