@@ -137,7 +137,7 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           source: docker-compose.prod.yml
-          target: /var/www/html
+          target: /home/runcloud/webapps/tourism-app
 
       - name: Deploy on server
         uses: appleboy/ssh-action@v1.2.0
@@ -147,7 +147,7 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             set -e
-            cd /var/www/html
+            cd /home/runcloud/webapps/tourism-app
 
             # Pull les nouvelles images depuis Docker Hub
             docker compose -f docker-compose.prod.yml pull
