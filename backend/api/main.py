@@ -1,6 +1,5 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware  # type: ignore[import]
-from database import Base, engine
 import models  # noqa: F401 — nécessaire pour que SQLAlchemy détecte les modèles
 from routes_test import router as test_router
 from routes.auth import router as auth_router
@@ -10,8 +9,6 @@ from routes.profile import router as profile_router
 from routes.stats import router as stats_router
 from routes.trips import router as trips_router
 from routes.recommendations import router as recommendations_router
-
-Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Tourism API")
 
@@ -39,4 +36,4 @@ app.include_router(test_router)
 
 @app.get("/")
 def root():
-    return {"message": "API is runningggggggggg"}
+    return {"message": "API is runningggggggggggg"}
