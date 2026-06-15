@@ -36,7 +36,7 @@ services:
   frontend:
     image: maeldcls/tourism-frontend:latest
     ports:
-      - "80:80"
+      - "3000:80"
     depends_on:
       - api
     restart: unless-stopped

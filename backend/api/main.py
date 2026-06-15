@@ -39,4 +39,4 @@ app.include_router(test_router)
 
 @app.get("/")
 def root():
-    return {"message": "API is runningggggggg"}
+    return {"message": "API is runningggggggggg"}
