@@ -121,7 +121,10 @@ jobs:
   deploy:
     name: Deploy — RunCloud
     needs: build-push
-    if: github.ref == 'refs/heads/main'
+    if: |
+      always() &&
+      needs.build-push.result == 'success' &&
+      github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
 
     steps:

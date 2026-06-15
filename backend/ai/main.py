@@ -24,7 +24,7 @@ THEMES: dict[str, str] = {
     "château": "palace château royal residence aristocratic mansion stately home",
     "spectacle": "theater opera concert hall performance entertainment stage cultural",
     "sport": "sport stadium arena olympic athletics competition gymnasium",
-    "gastronomie": "gastronomy food wine culinary market cuisine tasting local produces",
+    "gastronomie": "gastronomy food wine culinary market cuisine tasting local producce",
 }
 
 _theme_embeddings: dict[str, np.ndarray] | None = None
