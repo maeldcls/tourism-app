@@ -1,5 +1,5 @@
 from datetime import datetime
-from sqlalchemy import BigInteger, Boolean, Column, Float, ForeignKey, String, TIMESTAMP, Text, UniqueConstraint
+from sqlalchemy import BigInteger, Boolean, Column, Float, ForeignKey, Integer, String, TIMESTAMP, Text, UniqueConstraint
 from sqlalchemy.orm import relationship
 from database import Base
 
@@ -7,7 +7,7 @@ from database import Base
 class User(Base):
     __tablename__ = "users"
 
-    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
     email = Column(String(255), nullable=False, unique=True)
     username = Column(String(100), nullable=False, unique=True)
     password_hash = Column(String(255), nullable=True)
@@ -26,7 +26,7 @@ class User(Base):
 class Monument(Base):
     __tablename__ = "monuments"
 
-    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String(255), nullable=False)
     description = Column(String)
     city = Column(String(100))
@@ -47,7 +47,7 @@ class Monument(Base):
 class Visit(Base):
     __tablename__ = "visits"
 
-    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
     user_id = Column(BigInteger, ForeignKey("users.id"), nullable=False)
     monument_id = Column(BigInteger, ForeignKey("monuments.id"), nullable=False)
     gpt_lat = Column(Float)
@@ -61,7 +61,7 @@ class Visit(Base):
 class Badge(Base):
     __tablename__ = "badges"
 
-    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String(100), nullable=False)
     description = Column(String)
     icon_url = Column(String(500))
@@ -83,7 +83,7 @@ class UserBadge(Base):
 class XpHistory(Base):
     __tablename__ = "xp_history"
 
-    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
     user_id = Column(BigInteger, ForeignKey("users.id"), nullable=False)
     action = Column(String(255))
     xp = Column(BigInteger)
@@ -95,7 +95,7 @@ class XpHistory(Base):
 class MonumentImage(Base):
     __tablename__ = "monument_images"
 
-    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
     monument_id = Column(BigInteger, ForeignKey("monuments.id"), nullable=False)
     image_url = Column(Text, nullable=False)
 
@@ -105,7 +105,7 @@ class MonumentImage(Base):
 class Trip(Base):
     __tablename__ = "trips"
 
-    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
     user_id = Column(BigInteger, ForeignKey("users.id"), nullable=False)
     name = Column(String(255), nullable=False)
     description = Column(String, nullable=True)
@@ -134,7 +134,7 @@ class TripMonument(Base):
 class MonumentTheme(Base):
     __tablename__ = "monuments_theme"
 
-    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
     monument_id = Column(BigInteger, ForeignKey("monuments.id"), nullable=False)
     theme = Column(String(100), nullable=False)
     confidence = Column(Float, nullable=False)
