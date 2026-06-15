@@ -4,4 +4,3 @@ sentence-transformers
 numpy
 pytest
 httpx
-echo "" >> backend/ai/requirements.txt
