@@ -130,33 +130,23 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+
       - name: Copy docker-compose.prod.yml to server
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: docker-compose.prod.yml
-          target: /home/runcloud/webapps/tourism-app
+        run: scp docker-compose.prod.yml ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:~/webapps/tourism-app/
 
       - name: Deploy on server
-        uses: appleboy/ssh-action@v1.2.0
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            set -e
-            cd /home/runcloud/webapps/tourism-app
-
-            # Pull les nouvelles images depuis Docker Hub
-            docker compose -f docker-compose.prod.yml pull
-
-            # Redémarre les containers (--remove-orphans supprime les vieux containers inutiles)
-            docker compose -f docker-compose.prod.yml up -d --remove-orphans
-
-            # Applique les migrations de base de données
-            docker compose -f docker-compose.prod.yml exec -T api alembic upgrade head
-
-            # Supprime les anciennes images non utilisées pour libérer de l'espace disque
-            docker image prune -f
+        run: |
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'ENDSSH'
+          set -e
+          cd ~/webapps/tourism-app
+          docker compose -f docker-compose.prod.yml pull
+          docker compose -f docker-compose.prod.yml up -d --remove-orphans
+          docker compose -f docker-compose.prod.yml exec -T api alembic upgrade head
+          docker image prune -f
+          ENDSSH
