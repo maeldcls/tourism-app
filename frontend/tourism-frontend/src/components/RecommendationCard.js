@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import AddToTripDialog from './AddToTripDialog';
+import { useMonumentImages } from '../hooks/useMonumentImages';
 
 const THEME_COLORS = {
   musée:        { bg: '#e0f2fe', color: '#0369a1' },
@@ -23,16 +24,18 @@ const DEFAULT_THEME = { bg: '#f1f5f9', color: '#475569' };
 
 export default function RecommendationCard({ monument }) {
   const [dialogOpen, setDialogOpen] = useState(false);
+  const { images } = useMonumentImages(monument);
 
   const topThemes = monument.themes?.slice(0, 3) ?? [];
   const matchedSet = new Set(monument.matched_themes ?? []);
+  const displayImage = monument.image_url || images[0];
 
   return (
     <>
       <div className="rec-card">
         <div className="rec-card-image">
-          {monument.image_url ? (
-            <img src={monument.image_url} alt={monument.name} loading="lazy" />
+          {displayImage ? (
+            <img src={displayImage} alt={monument.name} loading="lazy" />
           ) : (
             <div className="rec-card-image-placeholder">
               <svg viewBox="0 0 24 24" fill="currentColor" width="32" height="32" opacity="0.25">
