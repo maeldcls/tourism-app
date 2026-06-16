@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 
-const DB_API = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+import API_URL from '../config';
+const DB_API = API_URL;
 const THUMB_W = 800;
 
 const cache = new Map();

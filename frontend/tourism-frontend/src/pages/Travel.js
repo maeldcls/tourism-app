@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
+import API_URL from '../config';
 import '../css/Travel.css';
 
-const API = 'http://localhost:8000';
+const API = API_URL;
 
 const STATUS_META = {
   planned:   { label: 'Planifié',  color: '#3b82f6' },

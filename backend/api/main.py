@@ -15,7 +15,10 @@ app = FastAPI(title="Tourism API")
 # CORS — permet au front React (localhost:3000) d'appeler l'API
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=[
+        "http://localhost:3000",
+        "https://tourism-app.projets-cda.garage404.com",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

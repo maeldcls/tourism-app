@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
+import API_URL from '../config';
 import RecommendationCard from '../components/RecommendationCard';
 import '../css/Destinations.css';
 
-const API = 'http://localhost:8000';
+const API = API_URL;
 const PAGE_SIZE = 10;
 
 function useGeolocation() {

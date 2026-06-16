@@ -4,6 +4,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import '../css/MapPage.css';
 import MonumentSheet from '../components/MonumentSheet';
+import API_URL from '../config';
 
 // ── Constantes ────────────────────────────────────────────────────────────────
 const MIN_ZOOM  = 13;   // en dessous → pas de chargement
@@ -26,7 +27,7 @@ function savePos(lat, lng, zoom) {
   localStorage.setItem(POS_KEY, JSON.stringify({ center: [lat, lng], zoom }));
 }
 
-const API = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+const API = API_URL;
 
 // ── Catégories ────────────────────────────────────────────────────────────────
 const CATEGORIES = {

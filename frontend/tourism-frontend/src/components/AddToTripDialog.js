@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import API_URL from '../config';
 import '../css/AddToTripDialog.css';
 
-const API = 'http://localhost:8000';
+const API = API_URL;
 
 export default function AddToTripDialog({ monument, onClose }) {
   const { user, token } = useAuth();

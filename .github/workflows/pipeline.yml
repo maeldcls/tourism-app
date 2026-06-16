@@ -108,6 +108,7 @@ jobs:
           push: true
           build-args: |
             REACT_APP_GOOGLE_CLIENT_ID=${{ secrets.REACT_APP_GOOGLE_CLIENT_ID }}
+            REACT_APP_API_URL=${{ secrets.REACT_APP_API_URL }}
           tags: |
             maeldcls/tourism-frontend:latest
             maeldcls/tourism-frontend:sha-${{ github.sha }}
