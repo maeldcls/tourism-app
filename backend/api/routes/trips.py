@@ -4,6 +4,7 @@ Trips routes — gestion des trajets utilisateur.
 GET    /trips/user/{user_id}                      → lister les trajets avec monuments
 POST   /trips                                     → créer un trajet
 POST   /trips/{trip_id}/monuments                 → ajouter un monument au trajet
+PATCH  /trips/{trip_id}/monuments/{monument_id}   → marquer un monument comme visité (ou non)
 DELETE /trips/{trip_id}/monuments/{monument_id}   → retirer un monument du trajet
 DELETE /trips/{trip_id}                           → supprimer un trajet
 """
@@ -25,6 +26,10 @@ class TripCreate(BaseModel):
 
 class TripMonumentAdd(BaseModel):
     monument_id: int
+
+
+class TripMonumentUpdate(BaseModel):
+    is_visited: bool
 
 
 # ── GET /trips/user/{user_id} ──────────────────────────────────────────────────
@@ -113,6 +118,20 @@ def add_monument_to_trip(trip_id: int, body: TripMonumentAdd, db: Session = Depe
     db.add(tm)
     db.commit()
     return {"trip_id": trip_id, "monument_id": body.monument_id}
+
+
+# ── PATCH /trips/{trip_id}/monuments/{monument_id} ────────────────────────────
+@router.patch("/{trip_id}/monuments/{monument_id}", status_code=200)
+def update_trip_monument(trip_id: int, monument_id: int, body: TripMonumentUpdate, db: Session = Depends(get_db)):
+    tm = db.query(models.TripMonument).filter(
+        models.TripMonument.trip_id == trip_id,
+        models.TripMonument.monument_id == monument_id,
+    ).first()
+    if not tm:
+        raise HTTPException(status_code=404, detail="Monument non trouvé dans ce trajet")
+    tm.is_visited = body.is_visited
+    db.commit()
+    return {"trip_id": trip_id, "monument_id": monument_id, "is_visited": tm.is_visited}
 
 
 # ── DELETE /trips/{trip_id}/monuments/{monument_id} ───────────────────────────

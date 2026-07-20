@@ -2,21 +2,47 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import API_URL from '../config';
 import '../css/Travel.css';
+import { useMonumentImages } from '../hooks/useMonumentImages';
 
 const API = API_URL;
 
 const STATUS_META = {
-  planned:   { label: 'Planifié',  color: '#3b82f6' },
-  ongoing:   { label: 'En cours',  color: '#16a34a' },
-  completed: { label: 'Terminé',   color: '#6b7280' },
+  planned:   { label: 'Planifié',  color: '#5c8a5c' },
+  ongoing:   { label: 'En cours',  color: '#a8b826' },
+  completed: { label: 'Terminé',   color: '#8b8b7a' },
 };
 
-function TripCard({ trip, onRemoveMonument, onDeleteTrip }) {
+function TripMonumentThumb({ monument }) {
+  const { images, loading } = useMonumentImages(monument);
+
+  if (loading) return <div className="trip-thumb trip-thumb--skeleton" />;
+
+  if (!images.length) {
+    return (
+      <div className="trip-thumb trip-thumb--placeholder">
+        <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
+          <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z" />
+        </svg>
+      </div>
+    );
+  }
+
+  return (
+    <div className="trip-thumb">
+      <img src={images[0]} alt="" onError={e => { e.target.style.display = 'none'; }} />
+    </div>
+  );
+}
+
+function TripCard({ trip, onRemoveMonument, onDeleteTrip, onToggleVisited, justToggled }) {
   const [open, setOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [removingId, setRemovingId] = useState(null);
-  const meta = STATUS_META[trip.status] ?? STATUS_META.planned;
+  const total = trip.monuments.length;
   const visited = trip.monuments.filter(m => m.is_visited).length;
+  const progressPct = total > 0 ? (visited / total) * 100 : 0;
+  const computedStatus = visited === 0 ? 'planned' : visited === total ? 'completed' : 'ongoing';
+  const meta = STATUS_META[computedStatus];
 
   async function handleRemoveMonument(monumentId) {
     setRemovingId(monumentId);
@@ -31,22 +57,13 @@ function TripCard({ trip, onRemoveMonument, onDeleteTrip }) {
 
   return (
     <div className={`trip-card ${open ? 'trip-card--open' : ''}`}>
-      <button className="trip-card-header" onClick={() => setOpen(o => !o)}>
-        <div className="trip-card-header-left">
-          <div className="trip-status-dot" style={{ background: meta.color }} />
-          <div className="trip-card-info">
-            <span className="trip-name">{trip.name}</span>
-            <span className="trip-meta">
-              <span className="trip-badge" style={{ background: meta.color + '22', color: meta.color }}>
-                {meta.label}
-              </span>
-              <span className="trip-count">{trip.monuments.length} monument{trip.monuments.length !== 1 ? 's' : ''}</span>
-              {trip.monuments.length > 0 && (
-                <span className="trip-progress">{visited}/{trip.monuments.length} visités</span>
-              )}
-            </span>
-          </div>
-        </div>
+      <button className="trip-pill" onClick={() => setOpen(o => !o)}>
+        <span className="trip-pill-name">{trip.name}</span>
+        {total > 0 && (
+          <span className="trip-pill-progress">
+            <span className="trip-pill-progress-fill" style={{ width: `${progressPct}%` }} />
+          </span>
+        )}
         <svg
           className={`trip-chevron ${open ? 'trip-chevron--open' : ''}`}
           viewBox="0 0 24 24"
@@ -56,46 +73,112 @@ function TripCard({ trip, onRemoveMonument, onDeleteTrip }) {
         </svg>
       </button>
 
+      <div className="trip-pill-meta">
+        <span className="trip-badge" style={{ background: meta.color + '22', color: meta.color }}>
+          {meta.label}
+        </span>
+        <span className="trip-count">{total} monument{total !== 1 ? 's' : ''}</span>
+        {total > 0 && <span className="trip-progress-label">{visited}/{total} visités</span>}
+      </div>
+
       {open && (
         <div className="trip-body">
-          {trip.monuments.length === 0 ? (
+          {total === 0 ? (
             <p className="trip-empty">Aucun monument ajouté à ce trajet.</p>
           ) : (
-            <ul className="trip-monuments">
-              {trip.monuments.map(m => (
-                <li key={m.monument_id} className={`trip-monument-item ${m.is_visited ? 'trip-monument-item--visited' : ''}`}>
-                  <div className="trip-monument-left">
-                    <div className={`trip-visit-dot ${m.is_visited ? 'trip-visit-dot--done' : ''}`} />
+            <div className="trip-timeline">
+              {trip.monuments.map((m, i) => {
+                const prev = trip.monuments[i - 1];
+                const next = trip.monuments[i + 1];
+
+                // Un trait vert entre deux nœuds est dessiné en 2 moitiés (une par ligne),
+                // qui se rejoignent au milieu. Pour donner l'impression d'un seul trait continu
+                // qui part du monument qu'on vient de valider, la moitié la plus proche de ce
+                // monument s'anime en premier (delay 0), puis la moitié la plus éloignée prend
+                // le relais exactement là où la première s'arrête (delay = HALF) — comme une
+                // barre de progression qui avance en continu, pas deux bouts qui poussent chacun de leur côté.
+                const HALF = 0.25;
+
+                const topConnected = i > 0 && prev.is_visited && m.is_visited;
+                let topAnimate = false, topOrigin = 'top', topDelay = 0;
+                if (topConnected) {
+                  if (justToggled === m.monument_id) {
+                    topAnimate = true; topOrigin = 'bottom'; topDelay = 0;
+                  } else if (justToggled === prev?.monument_id) {
+                    topAnimate = true; topOrigin = 'top'; topDelay = HALF;
+                  }
+                }
+
+                const bottomConnected = i < total - 1 && m.is_visited && next.is_visited;
+                let bottomAnimate = false, bottomOrigin = 'top', bottomDelay = 0;
+                if (bottomConnected) {
+                  if (justToggled === m.monument_id) {
+                    bottomAnimate = true; bottomOrigin = 'top'; bottomDelay = 0;
+                  } else if (justToggled === next?.monument_id) {
+                    bottomAnimate = true; bottomOrigin = 'bottom'; bottomDelay = HALF;
+                  }
+                }
+
+                return (
+                <div key={m.monument_id} className="trip-timeline-row">
+                  <div className="trip-timeline-track">
+                    <span
+                      key={`top-${topConnected}-${topAnimate ? 'anim' : 'static'}`}
+                      className={[
+                        'trip-timeline-line',
+                        i === 0 ? 'trip-timeline-line--hidden' : '',
+                        topConnected ? 'trip-timeline-line--connected' : '',
+                        topAnimate ? `trip-timeline-line--animate trip-timeline-line--origin-${topOrigin}` : '',
+                      ].filter(Boolean).join(' ')}
+                      style={topAnimate ? { animationDelay: `${topDelay}s` } : undefined}
+                    />
+                    <button
+                      className={`trip-node${m.is_visited ? ' trip-node--done' : ''}`}
+                      onClick={() => onToggleVisited(trip.id, m)}
+                      aria-label={m.is_visited ? `Marquer ${m.name} comme non visité` : `Marquer ${m.name} comme visité`}
+                    >
+                      {m.is_visited && (
+                        <svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13">
+                          <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" />
+                        </svg>
+                      )}
+                    </button>
+                    <span
+                      key={`bottom-${bottomConnected}-${bottomAnimate ? 'anim' : 'static'}`}
+                      className={[
+                        'trip-timeline-line',
+                        i === total - 1 ? 'trip-timeline-line--hidden' : '',
+                        bottomConnected ? 'trip-timeline-line--connected' : '',
+                        bottomAnimate ? `trip-timeline-line--animate trip-timeline-line--origin-${bottomOrigin}` : '',
+                      ].filter(Boolean).join(' ')}
+                      style={bottomAnimate ? { animationDelay: `${bottomDelay}s` } : undefined}
+                    />
+                  </div>
+
+                  <div className={`trip-monument-card${m.is_visited ? ' trip-monument-card--visited' : ''}`}>
+                    <TripMonumentThumb monument={{ id: m.monument_id, name: m.name, latitude: m.latitude, longitude: m.longitude }} />
                     <div className="trip-monument-info">
                       <span className="trip-monument-name">{m.name}</span>
                       {m.city && <span className="trip-monument-city">{m.city}</span>}
                     </div>
+                    <button
+                      className="trip-remove-btn"
+                      onClick={() => handleRemoveMonument(m.monument_id)}
+                      disabled={removingId === m.monument_id}
+                      aria-label={`Retirer ${m.name}`}
+                    >
+                      {removingId === m.monument_id ? (
+                        <div className="trip-mini-spinner" />
+                      ) : (
+                        <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14">
+                          <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
+                        </svg>
+                      )}
+                    </button>
                   </div>
-                  <button
-                    className="trip-remove-btn"
-                    onClick={() => handleRemoveMonument(m.monument_id)}
-                    disabled={removingId === m.monument_id}
-                    aria-label={`Retirer ${m.name}`}
-                  >
-                    {removingId === m.monument_id ? (
-                      <div className="trip-mini-spinner" />
-                    ) : (
-                      <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
-                        <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
-                      </svg>
-                    )}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-
-          {trip.monuments.length > 0 && (
-            <div className="trip-progress-bar-wrap">
-              <div
-                className="trip-progress-bar-fill"
-                style={{ width: `${(visited / trip.monuments.length) * 100}%` }}
-              />
+                </div>
+                );
+              })}
             </div>
           )}
 
@@ -128,6 +211,7 @@ export default function Travel() {
   const [showCreate, setShowCreate] = useState(false);
   const [newTripName, setNewTripName] = useState('');
   const [creating, setCreating] = useState(false);
+  const [justToggled, setJustToggled] = useState(null);
 
   const fetchTrips = useCallback(() => {
     if (!user) return;
@@ -169,6 +253,30 @@ export default function Travel() {
       headers: { Authorization: `Bearer ${token}` },
     });
     fetchTrips();
+  }
+
+  async function toggleVisited(tripId, monument) {
+    const nextVisited = !monument.is_visited;
+    setTrips(prev => prev.map(t => t.id !== tripId ? t : {
+      ...t,
+      monuments: t.monuments.map(m => m.monument_id === monument.monument_id ? { ...m, is_visited: nextVisited } : m),
+    }));
+    if (nextVisited) {
+      setJustToggled(monument.monument_id);
+      setTimeout(() => {
+        setJustToggled(id => id === monument.monument_id ? null : id);
+      }, 550);
+    }
+    try {
+      const r = await fetch(`${API}/trips/${tripId}/monuments/${monument.monument_id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ is_visited: nextVisited }),
+      });
+      if (!r.ok) throw new Error();
+    } catch {
+      fetchTrips();
+    }
   }
 
   return (
@@ -238,6 +346,8 @@ export default function Travel() {
               trip={trip}
               onRemoveMonument={removeMonument}
               onDeleteTrip={deleteTrip}
+              onToggleVisited={toggleVisited}
+              justToggled={justToggled}
             />
           ))}
         </div>
