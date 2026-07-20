@@ -1,64 +1,76 @@
 .navbar {
+  --navbar-accent: #c3d62e;
+  --navbar-ink: #1c1c1c;
+
   position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 64px;
-  background: #fff;
+  bottom: 18px;
+  left: 16px;
+  right: 16px;
+  height: 62px;
+  background: var(--navbar-ink);
+  border-radius: 999px;
   display: flex;
   align-items: stretch;
-  box-shadow: 0 -1px 0 #e0e0e0, 0 -4px 16px rgba(0, 0, 0, 0.06);
+  padding: 0 6px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.3);
   z-index: 100;
+}
+
+.navbar-slider {
+  position: absolute;
+  top: 50%;
+  width: 44px;
+  height: 44px;
+  background: var(--navbar-accent);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transition: left 0.32s cubic-bezier(0.34, 1.4, 0.64, 1);
+  box-shadow: 0 2px 10px rgba(195, 214, 46, 0.45);
+  pointer-events: none;
 }
 
 .navbar-item {
   flex: 1;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 3px;
   text-decoration: none;
-  color: #90a4ae;
+  color: rgba(255, 255, 255, 0.55);
   position: relative;
-  transition: color 0.2s;
+  z-index: 1;
+  transition: color 0.25s;
 }
 
 .navbar-item--active {
-  color: #2196f3;
-}
-
-.navbar-indicator {
-  position: absolute;
-  top: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 28px;
-  height: 3px;
-  background: #2196f3;
-  border-radius: 0 0 4px 4px;
+  color: var(--navbar-ink);
 }
 
 .navbar-icon {
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .navbar-icon svg {
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
 }
 
 .navbar-label {
-  font-size: 0.65rem;
-  font-weight: 500;
-  letter-spacing: 0.01em;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
-/* Espace en bas des pages pour ne pas être masqué par la navbar */
+/* Espace en bas des pages pour ne pas être masqué par la navbar flottante */
 body {
-  padding-bottom: 64px;
+  padding-bottom: 100px;
 }

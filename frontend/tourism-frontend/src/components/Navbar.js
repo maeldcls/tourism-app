@@ -49,16 +49,28 @@ const NAV_ITEMS = [
   },
 ];
 
+// Doit rester égal au padding horizontal de .navbar (Navbar.css) : le slider est
+// positionné en % de la boîte complète de .navbar, alors que les items flex sont
+// resserrés par ce padding — sans le compenser ici, le rond dérive vers l'extérieur.
+const NAV_PADDING = 6;
+
 export default function Navbar() {
   const { pathname } = useLocation();
+  const activeIndex = NAV_ITEMS.findIndex(({ path }) => path === pathname);
+  const itemFraction = (activeIndex + 0.5) / NAV_ITEMS.length;
 
   return (
     <nav className="navbar">
+      {activeIndex !== -1 && (
+        <span
+          className="navbar-slider"
+          style={{ left: `calc(${NAV_PADDING}px + ${itemFraction} * (100% - ${NAV_PADDING * 2}px))` }}
+        />
+      )}
       {NAV_ITEMS.map(({ path, label, icon }) => {
         const active = pathname === path;
         return (
           <Link key={path} to={path} className={`navbar-item${active ? ' navbar-item--active' : ''}`}>
-            {active && <span className="navbar-indicator" />}
             <span className="navbar-icon">{icon}</span>
             <span className="navbar-label">{label}</span>
           </Link>
