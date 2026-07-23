@@ -15,12 +15,14 @@ class User(Base):
     xp = Column(BigInteger, default=0)
     level = Column(BigInteger, default=1)
     taste_profile = Column(Text, nullable=True)
+    is_admin = Column(Boolean, nullable=False, default=False)
     created_at = Column(TIMESTAMP, default=datetime.utcnow)
 
     visits = relationship("Visit", back_populates="user")
     xp_history = relationship("XpHistory", back_populates="user")
     user_badges = relationship("UserBadge", back_populates="user")
     trips = relationship("Trip", back_populates="user")
+    comments = relationship("Comment", back_populates="user", foreign_keys="Comment.user_id")
 
 
 class Monument(Base):
@@ -42,6 +44,7 @@ class Monument(Base):
     images = relationship("MonumentImage", back_populates="monument", cascade="all, delete-orphan")
     trip_monuments = relationship("TripMonument", back_populates="monument")
     themes = relationship("MonumentTheme", back_populates="monument", cascade="all, delete-orphan")
+    comments = relationship("Comment", back_populates="monument", cascade="all, delete-orphan")
 
 
 class Visit(Base):
@@ -142,3 +145,22 @@ class MonumentTheme(Base):
     monument = relationship("Monument", back_populates="themes")
 
     __table_args__ = (UniqueConstraint("monument_id", "theme", name="uq_monument_theme"),)
+
+
+class Comment(Base):
+    __tablename__ = "comments"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    monument_id = Column(BigInteger, ForeignKey("monuments.id"), nullable=False)
+    user_id = Column(BigInteger, ForeignKey("users.id"), nullable=False)
+    body = Column(Text, nullable=False)
+    # visible | pending_review (masqué, en attente de modération) | removed
+    status = Column(String(20), nullable=False, default="visible")
+    ai_score = Column(Float, nullable=True)
+    ai_flagged_at = Column(TIMESTAMP, nullable=True)
+    moderated_by = Column(BigInteger, ForeignKey("users.id"), nullable=True)
+    moderated_at = Column(TIMESTAMP, nullable=True)
+    created_at = Column(TIMESTAMP, default=datetime.utcnow)
+
+    monument = relationship("Monument", back_populates="comments")
+    user = relationship("User", back_populates="comments", foreign_keys=[user_id])

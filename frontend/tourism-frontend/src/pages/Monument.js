@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import '../css/Monument.css';
 import ImageLightbox from '../components/ImageLightbox';
 import AddToTripDialog from '../components/AddToTripDialog';
+import CommentsSection from '../components/CommentsSection';
 import { useMonumentImages } from '../hooks/useMonumentImages';
 
 const MAX_VISIBLE_THUMBS = 3;
@@ -244,6 +245,8 @@ export default function Monument() {
               )}
             </div>
           )}
+
+          <CommentsSection monumentId={monument.id} />
         </div>
       </div>
 

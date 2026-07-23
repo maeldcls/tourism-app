@@ -4,6 +4,7 @@ Monuments routes — pages Destinations, MapPage, Monument.
 GET  /monuments              → page Destinations : liste tous les monuments
                                ?city=Paris         → filtre par ville
                                ?theme=histoire     → filtre par thème
+                               ?q=louvre           → recherche par nom (page MapPage)
 GET  /monuments/nearby       → page MapPage : monuments proches d'une position GPS
                                ?lat=48.8&lon=2.3&radius_km=5
 GET  /monuments/{id}         → page Monument : détail d'un monument
@@ -215,11 +216,14 @@ def _monument_to_dict(m: models.Monument, include_images: bool = False) -> dict:
 def get_monuments(
     city: Optional[str] = Query(None, description="Filtrer par ville"),
     theme: Optional[str] = Query(None, description="Filtrer par thème"),
+    q: Optional[str] = Query(None, description="Recherche par nom"),
     db: Session = Depends(get_db),
 ):
     query = db.query(models.Monument)
     if city:
         query = query.filter(models.Monument.city.ilike(f"%{city}%"))
+    if q:
+        query = query.filter(models.Monument.name.ilike(f"%{q}%")).limit(8)
     monuments = query.all()
     return [_monument_to_dict(m) for m in monuments]
 

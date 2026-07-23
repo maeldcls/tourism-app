@@ -4,6 +4,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import '../css/MapPage.css';
 import MonumentSheet from '../components/MonumentSheet';
+import MapSearchBar from '../components/MapSearchBar';
 import API_URL from '../config';
 
 // ── Constantes ────────────────────────────────────────────────────────────────
@@ -127,14 +128,6 @@ function MapEventsHandler({ onBoundsChange, onFetchNeeded, debounceRef }) {
   return null;
 }
 
-function FlyToUser({ position }) {
-  const map = useMap();
-  useEffect(() => {
-    if (position) map.flyTo(position, 15, { duration: 1.2 });
-  }, [position, map]);
-  return null;
-}
-
 // ── Composant principal ───────────────────────────────────────────────────────
 export default function MapPage() {
   const savedPos = loadSavedPos(); // lire avant le premier render
@@ -150,15 +143,43 @@ export default function MapPage() {
   const poisMapRef   = useRef(new Map()); // id → poi (accumulation)
   const fetchedCells = useRef(new Set()); // clés de cellules déjà chargées
   const debounceTimer = useRef(null);
-
-  
+  const mapRef         = useRef(null);
 
   // Géolocalisation initiale — on garde la position utilisateur pour le marqueur
+  // (ne recentre pas la carte : on veut conserver la position déjà consultée)
   useEffect(() => {
     navigator.geolocation?.getCurrentPosition(
       pos => setUserPos([pos.coords.latitude, pos.coords.longitude]),
       () => {}
     );
+  }, []);
+
+  const recenterOnUser = useCallback(() => {
+    if (userPos && mapRef.current) {
+      mapRef.current.flyTo(userPos, 15, { duration: 1.2 });
+    }
+  }, [userPos]);
+
+  // Sélection d'un monument depuis la recherche → recentre et ouvre sa fiche
+  const handleSelectMonument = useCallback((poi) => {
+    if (!poisMapRef.current.has(poi.id)) {
+      poisMapRef.current.set(poi.id, poi);
+      setPois([...poisMapRef.current.values()]);
+    }
+    mapRef.current?.flyTo([poi.latitude, poi.longitude], 17, { duration: 1.2 });
+    setSelected({ ...poi, _cat: getCategory(poi.category) });
+  }, []);
+
+  // Sélection d'un lieu (ville, adresse…) depuis la recherche → recentre sans ouvrir de fiche
+  const handleSelectPlace = useCallback((place) => {
+    const map = mapRef.current;
+    if (!map) return;
+    if (place.boundingbox) {
+      const [south, north, west, east] = place.boundingbox.map(Number);
+      map.flyToBounds([[south, west], [north, east]], { duration: 1.2, maxZoom: 16 });
+    } else {
+      map.flyTo([Number(place.lat), Number(place.lon)], 14, { duration: 1.2 });
+    }
   }, []);
 
   // Chargement uniquement des cellules nouvelles dans la vue
@@ -226,6 +247,11 @@ export default function MapPage() {
 
   return (
     <div className="mappage">
+      <MapSearchBar
+        onSelectMonument={handleSelectMonument}
+        onSelectPlace={handleSelectPlace}
+      />
+
       {/* Filtres */}
       {presentCategories.length > 1 && (
         <div className="mappage-filters">
@@ -253,9 +279,9 @@ export default function MapPage() {
         center={savedPos?.center ?? DEFAULT_CENTER}
         zoom={savedPos?.zoom ?? DEFAULT_ZOOM}
         className="mappage-map"
+        ref={mapRef}
       >
         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-        {userPos && <FlyToUser position={userPos} />}
         <MapEventsHandler
           onBoundsChange={setMapView}
           onFetchNeeded={loadNewCells}
@@ -289,6 +315,17 @@ export default function MapPage() {
           );
         })}
       </MapContainer>
+
+      {userPos && (
+        <button
+          className="mappage-locate-btn"
+          onClick={recenterOnUser}
+          aria-label="Recentrer sur ma position"
+          title="Recentrer sur ma position"
+        >
+          📍
+        </button>
+      )}
 
       <div className="mappage-count">
         {tooFarOut

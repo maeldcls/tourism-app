@@ -1,0 +1,121 @@
+.mapsearch {
+  position: relative;
+  padding: 0.6rem 0.75rem;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  z-index: 20;
+}
+
+.mapsearch-box {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: #f1f4f6;
+  border: 1.5px solid transparent;
+  border-radius: 999px;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.mapsearch-box:focus-within {
+  border-color: #2196f3;
+  background: #fff;
+}
+
+.mapsearch-icon {
+  color: #78909c;
+  flex-shrink: 0;
+}
+
+.mapsearch-box input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 0.88rem;
+  color: #263238;
+}
+
+.mapsearch-box input::placeholder {
+  color: #90a4ae;
+}
+
+.mapsearch-clear {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: 50%;
+  background: #cfd8dc;
+  color: #fff;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+/* ── Dropdown résultats ─────────────────────────────────────────── */
+.mapsearch-results {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0.75rem;
+  right: 0.75rem;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+  overflow: hidden;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.mapsearch-status {
+  padding: 0.9rem 1rem;
+  font-size: 0.82rem;
+  color: #90a4ae;
+  text-align: center;
+}
+
+.mapsearch-group + .mapsearch-group {
+  border-top: 1px solid #eceff1;
+}
+
+.mapsearch-group-label {
+  padding: 0.5rem 1rem 0.2rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #90a4ae;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.mapsearch-item {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.55rem 1rem;
+  border: none;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+
+.mapsearch-item:hover,
+.mapsearch-item:active {
+  background: #f1f4f6;
+}
+
+.mapsearch-item-name {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #263238;
+}
+
+.mapsearch-item-sub {
+  font-size: 0.78rem;
+  color: #90a4ae;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

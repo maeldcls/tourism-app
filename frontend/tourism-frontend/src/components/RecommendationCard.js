@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import AddToTripDialog from './AddToTripDialog';
 import { useMonumentImages } from '../hooks/useMonumentImages';
 
@@ -23,6 +24,7 @@ const THEME_COLORS = {
 const DEFAULT_THEME = { bg: '#f1f5f9', color: '#475569' };
 
 export default function RecommendationCard({ monument }) {
+  const navigate = useNavigate();
   const [dialogOpen, setDialogOpen] = useState(false);
   const { images } = useMonumentImages(monument);
 
@@ -73,12 +75,24 @@ export default function RecommendationCard({ monument }) {
             </div>
           )}
 
-          <button className="rec-card-add-btn" onClick={() => setDialogOpen(true)}>
-            <svg viewBox="0 0 24 24" fill="currentColor" width="15" height="15">
-              <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
-            </svg>
-            Ajouter à un trajet
-          </button>
+          <div className="rec-card-actions">
+            <button
+              className="rec-card-details-btn"
+              onClick={() => navigate('/monument', { state: { monument } })}
+            >
+              <svg viewBox="0 0 24 24" fill="currentColor" width="15" height="15">
+                <path d="M15.5 14h-.79l-.28-.27a6.5 6.5 0 1 0-.7.7l.27.28v.79l5 5L20.49 19l-5-5zm-6 0a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9z" />
+              </svg>
+              Détails
+            </button>
+
+            <button className="rec-card-add-btn" onClick={() => setDialogOpen(true)}>
+              <svg viewBox="0 0 24 24" fill="currentColor" width="15" height="15">
+                <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
+              </svg>
+              Ajouter à un trajet
+            </button>
+          </div>
         </div>
       </div>
 

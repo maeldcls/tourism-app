@@ -77,6 +77,25 @@
   pointer-events: none;
 }
 
+/* ── Bouton recentrer sur ma position ───────────────────────────── */
+.mappage-locate-btn {
+  position: absolute;
+  bottom: 72px;
+  left: 12px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background: #fff;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.25);
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+}
+
 /* ── Point utilisateur ───────────────────────────────────────────── */
 .mappage-user-dot {
   width: 16px;

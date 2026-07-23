@@ -8,14 +8,16 @@ GET  /auth/me        → valider le token et retourner l'utilisateur courant
 """
 from datetime import datetime, timedelta, timezone
 import re
-from fastapi import APIRouter, Depends, HTTPException, Header
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, EmailStr
 from passlib.context import CryptContext
-from jose import JWTError, jwt
+from jose import jwt
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
 from database import get_db
+from deps import get_current_user
+from security import SECRET_KEY, ALGORITHM
 import models
 import os
 
@@ -23,9 +25,7 @@ router = APIRouter(prefix="/auth", tags=["Auth"])
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-SECRET_KEY = os.getenv("SECRET_KEY", "changeme-super-secret-key-tourism-app")
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")
-ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_DAYS = 30
 
 
@@ -44,6 +44,7 @@ def _user_payload(user: models.User, token: str) -> dict:
             "email": user.email,
             "xp": user.xp,
             "level": user.level,
+            "is_admin": user.is_admin,
         },
     }
 
@@ -135,21 +136,12 @@ def google_auth(body: GoogleBody, db: Session = Depends(get_db)):
 
 
 @router.get("/me")
-def me(authorization: str = Header(...), db: Session = Depends(get_db)):
-    token = authorization.removeprefix("Bearer ").removeprefix("bearer ")
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        user_id = int(payload["sub"])
-    except (JWTError, KeyError, ValueError):
-        raise HTTPException(status_code=401, detail="Token invalide")
-
-    user = db.query(models.User).filter(models.User.id == user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="Utilisateur introuvable")
+def me(user: models.User = Depends(get_current_user)):
     return {
         "id": user.id,
         "username": user.username,
         "email": user.email,
         "xp": user.xp,
         "level": user.level,
+        "is_admin": user.is_admin,
     }

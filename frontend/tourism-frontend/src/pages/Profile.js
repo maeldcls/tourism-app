@@ -58,6 +58,12 @@ export default function Profile() {
           <p className="xp-bar-pct">{levelProgress}%</p>
         </div>
 
+        {user.is_admin && (
+          <button className="profile-admin-btn" onClick={() => navigate('/admin/comments')}>
+            Modération des commentaires
+          </button>
+        )}
+
         <button className="profile-logout-btn" onClick={handleLogout}>
           Se déconnecter
         </button>

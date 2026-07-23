@@ -202,6 +202,12 @@
   flex-shrink: 0;
 }
 
+.rec-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 .rec-card-add-btn {
   display: flex;
   align-items: center;
@@ -214,11 +220,30 @@
   font-size: 0.85rem;
   font-weight: 700;
   cursor: pointer;
-  align-self: flex-start;
   transition: background 0.15s;
 }
 
 .rec-card-add-btn:hover { background: #2d5282; }
+
+.rec-card-details-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 1rem;
+  background: transparent;
+  color: #1e3a5f;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.rec-card-details-btn:hover {
+  background: #f1f5f9;
+  border-color: #1e3a5f;
+}
 
 /* ── States ─────────────────────────────────────────────────────────────────── */
 

@@ -1,0 +1,148 @@
+.admin-page {
+  padding: 1.5rem 1rem 6rem;
+  max-width: 600px;
+  margin: 0 auto;
+  min-height: 100dvh;
+  background: #f7f5f2;
+}
+
+.admin-title {
+  margin: 0 0 0.2rem;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #1e3a5f;
+  letter-spacing: -0.02em;
+}
+
+.admin-subtitle {
+  margin: 0 0 1.25rem;
+  font-size: 0.85rem;
+  color: #94a3b8;
+}
+
+.admin-denied {
+  padding: 3rem 0;
+  text-align: center;
+  color: #64748b;
+  font-weight: 600;
+}
+
+/* ── Onglets ────────────────────────────────────────────────────────── */
+.admin-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.admin-tab {
+  padding: 0.4rem 0.9rem;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 999px;
+  background: transparent;
+  color: #64748b;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.admin-tab--active {
+  background: #1e3a5f;
+  border-color: #1e3a5f;
+  color: #fff;
+}
+
+/* ── Liste ──────────────────────────────────────────────────────────── */
+.admin-empty {
+  text-align: center;
+  color: #94a3b8;
+  font-size: 0.9rem;
+  padding: 2rem 0;
+}
+
+.admin-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.admin-card {
+  background: #fff;
+  border-radius: 14px;
+  padding: 0.9rem 1rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.07), 0 4px 12px rgba(0,0,0,0.04);
+}
+
+.admin-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.6rem;
+  margin-bottom: 0.5rem;
+}
+
+.admin-card-monument {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #1e3a5f;
+}
+
+.admin-card-meta {
+  display: block;
+  font-size: 0.75rem;
+  color: #94a3b8;
+  margin-top: 0.1rem;
+}
+
+.admin-card-score {
+  flex-shrink: 0;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  background: #ffebee;
+  color: #c62828;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.admin-card-body {
+  margin: 0 0 0.75rem;
+  font-size: 0.87rem;
+  color: #334155;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.admin-card-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.admin-btn {
+  padding: 0.4rem 0.9rem;
+  border-radius: 8px;
+  border: none;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.admin-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.admin-btn--restore {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.admin-btn--remove {
+  background: #ffebee;
+  color: #c62828;
+}

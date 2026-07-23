@@ -1,12 +1,17 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
 from sentence_transformers import SentenceTransformer
+from detoxify import Detoxify
 import numpy as np
 from typing import Optional
 
 app = FastAPI(title="AI Recommendation Service")
 
 model = SentenceTransformer("all-MiniLM-L6-v2")
+
+# Modèle multilingue (fr, en, es, it, pt, tr, ru) pour la pré-modération des commentaires
+toxicity_model = Detoxify("multilingual")
+TOXICITY_THRESHOLD = 0.5
 
 # Taxonomie fixe de thèmes avec descriptions sémantiques pour le zero-shot
 THEMES: dict[str, str] = {
@@ -82,6 +87,16 @@ class UserTasteResponse(BaseModel):
     embedding: list[float]
 
 
+class ModerationInput(BaseModel):
+    text: str
+
+
+class ModerationResponse(BaseModel):
+    score: float
+    labels: dict[str, float]
+    flagged: bool
+
+
 # --- Endpoints ---
 
 @app.post("/tag-monument", response_model=TagResponse)
@@ -140,3 +155,12 @@ def user_taste(monuments: list[MonumentWithThemes]):
 @app.get("/themes")
 def list_themes():
     return {"themes": list(THEMES.keys())}
+
+
+@app.post("/moderate-comment", response_model=ModerationResponse)
+def moderate_comment(body: ModerationInput):
+    """Score de toxicité d'un commentaire. `score` = le plus élevé de tous les labels prédits."""
+    raw = toxicity_model.predict(body.text)
+    labels = {k: round(float(v), 4) for k, v in raw.items()}
+    score = max(labels.values()) if labels else 0.0
+    return ModerationResponse(score=score, labels=labels, flagged=score >= TOXICITY_THRESHOLD)

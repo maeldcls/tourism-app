@@ -9,6 +9,8 @@ from routes.profile import router as profile_router
 from routes.stats import router as stats_router
 from routes.trips import router as trips_router
 from routes.recommendations import router as recommendations_router
+from routes.comments import router as comments_router
+from routes.admin import router as admin_router
 
 app = FastAPI(title="Tourism API")
 
@@ -32,6 +34,8 @@ app.include_router(profile_router)
 app.include_router(stats_router)
 app.include_router(trips_router)
 app.include_router(recommendations_router)
+app.include_router(comments_router)
+app.include_router(admin_router)
 
 # Routes de test temporaires — à supprimer avant la prod
 app.include_router(test_router)

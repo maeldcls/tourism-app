@@ -1,0 +1,134 @@
+.monu-comments-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 0.9rem;
+}
+
+.monu-comments-input {
+  resize: vertical;
+  min-height: 44px;
+  padding: 0.65rem 0.8rem;
+  border: 1.5px solid #e3e1d4;
+  border-radius: 12px;
+  background: #fff;
+  font-family: inherit;
+  font-size: 0.88rem;
+  color: var(--monu-ink);
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.monu-comments-input:focus {
+  border-color: var(--monu-accent);
+}
+
+.monu-comments-submit {
+  align-self: flex-end;
+  padding: 0.55rem 1.2rem;
+  border: none;
+  border-radius: 999px;
+  background: var(--monu-accent);
+  color: var(--monu-ink);
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.monu-comments-submit:hover:not(:disabled) {
+  background: var(--monu-accent-dark);
+}
+
+.monu-comments-submit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.monu-comments-login-hint {
+  margin: 0 0 0.9rem;
+  font-size: 0.85rem;
+  color: var(--monu-muted);
+  font-style: italic;
+}
+
+.monu-comments-notice {
+  margin: 0 0 0.9rem;
+  padding: 0.6rem 0.8rem;
+  border-radius: 10px;
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+.monu-comments-notice--pending {
+  background: #fff8e1;
+  color: #8d6e00;
+}
+
+.monu-comments-notice--error {
+  background: #ffebee;
+  color: #c62828;
+}
+
+.monu-comments-empty {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--monu-muted);
+  text-align: center;
+  padding: 0.5rem 0;
+}
+
+.monu-comments-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.monu-comments-item {
+  background: #fff;
+  border-radius: 12px;
+  padding: 0.7rem 0.85rem;
+}
+
+.monu-comments-item-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.3rem;
+}
+
+.monu-comments-author {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--monu-ink);
+}
+
+.monu-comments-date {
+  font-size: 0.75rem;
+  color: var(--monu-muted);
+  flex-shrink: 0;
+}
+
+.monu-comments-body {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #5c5c50;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.monu-comments-delete {
+  margin-top: 0.4rem;
+  border: none;
+  background: none;
+  padding: 0;
+  color: #c62828;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+}
