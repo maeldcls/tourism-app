@@ -23,6 +23,8 @@ class User(Base):
     user_badges = relationship("UserBadge", back_populates="user")
     trips = relationship("Trip", back_populates="user")
     comments = relationship("Comment", back_populates="user", foreign_keys="Comment.user_id")
+    ratings = relationship("Rating", back_populates="user")
+    monument_tags = relationship("MonumentTag", back_populates="user")
 
 
 class Monument(Base):
@@ -45,6 +47,8 @@ class Monument(Base):
     trip_monuments = relationship("TripMonument", back_populates="monument")
     themes = relationship("MonumentTheme", back_populates="monument", cascade="all, delete-orphan")
     comments = relationship("Comment", back_populates="monument", cascade="all, delete-orphan")
+    ratings = relationship("Rating", back_populates="monument", cascade="all, delete-orphan")
+    monument_tags = relationship("MonumentTag", back_populates="monument", cascade="all, delete-orphan")
 
 
 class Visit(Base):
@@ -164,3 +168,44 @@ class Comment(Base):
 
     monument = relationship("Monument", back_populates="comments")
     user = relationship("User", back_populates="comments", foreign_keys=[user_id])
+
+
+class Rating(Base):
+    __tablename__ = "ratings"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    monument_id = Column(BigInteger, ForeignKey("monuments.id"), nullable=False)
+    user_id = Column(BigInteger, ForeignKey("users.id"), nullable=False)
+    is_positive = Column(Boolean, nullable=False)
+    created_at = Column(TIMESTAMP, default=datetime.utcnow)
+    updated_at = Column(TIMESTAMP, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    monument = relationship("Monument", back_populates="ratings")
+    user = relationship("User", back_populates="ratings")
+
+
+class Tag(Base):
+    __tablename__ = "tags"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    label = Column(String(100), nullable=False, unique=True)
+    emoji = Column(String(10), nullable=False)
+    # positive | neutral | negative
+    sentiment = Column(String(20), nullable=False, default="neutral")
+    created_at = Column(TIMESTAMP, default=datetime.utcnow)
+
+    monument_tags = relationship("MonumentTag", back_populates="tag", cascade="all, delete-orphan")
+
+
+class MonumentTag(Base):
+    __tablename__ = "monument_tags"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    monument_id = Column(BigInteger, ForeignKey("monuments.id"), nullable=False)
+    tag_id = Column(BigInteger, ForeignKey("tags.id"), nullable=False)
+    user_id = Column(BigInteger, ForeignKey("users.id"), nullable=False)
+    created_at = Column(TIMESTAMP, default=datetime.utcnow)
+
+    monument = relationship("Monument", back_populates="monument_tags")
+    tag = relationship("Tag", back_populates="monument_tags")
+    user = relationship("User", back_populates="monument_tags")

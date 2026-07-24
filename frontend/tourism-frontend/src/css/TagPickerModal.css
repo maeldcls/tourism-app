@@ -1,0 +1,115 @@
+.tagpicker-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(28, 28, 28, 0.5);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.tagpicker-sheet {
+  width: 100%;
+  max-width: 600px;
+  max-height: 80vh;
+  overflow-y: auto;
+  background: var(--monu-cream, #f4f2e8);
+  border-radius: 20px 20px 0 0;
+  padding: 1.2rem 1.2rem 2rem;
+}
+
+.tagpicker-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.4rem;
+}
+
+.tagpicker-title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--monu-ink, #1c1c1c);
+}
+
+.tagpicker-close {
+  border: none;
+  background: none;
+  font-size: 1.6rem;
+  line-height: 1;
+  color: var(--monu-muted, #8b8b7a);
+  cursor: pointer;
+  padding: 0.2rem 0.5rem;
+}
+
+.tagpicker-hint {
+  margin: 0 0 1rem;
+  font-size: 0.82rem;
+  color: var(--monu-muted, #8b8b7a);
+}
+
+.tagpicker-error {
+  margin: -0.4rem 0 0.8rem;
+  font-size: 0.82rem;
+  color: #c62828;
+}
+
+.tagpicker-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.tagpicker-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.5rem 0.8rem;
+  border-radius: 999px;
+  border: 1.5px solid #e3e1d4;
+  background: #fff;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--monu-ink, #1c1c1c);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.tagpicker-chip--disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.tagpicker-chip--positive.tagpicker-chip--active {
+  background: #e8f5e9;
+  border-color: #2e7d32;
+  color: #2e7d32;
+}
+
+.tagpicker-chip--neutral.tagpicker-chip--active {
+  background: #f1f5f9;
+  border-color: #64748b;
+  color: #475569;
+}
+
+.tagpicker-chip--negative.tagpicker-chip--active {
+  background: #ffebee;
+  border-color: #c62828;
+  color: #c62828;
+}
+
+.tagpicker-chip-remove {
+  border: none;
+  background: none;
+  padding: 0;
+  margin-left: 0.1rem;
+  font-size: 1rem;
+  line-height: 1;
+  color: inherit;
+  opacity: 0.7;
+  cursor: pointer;
+}
+
+.tagpicker-chip-remove:hover {
+  opacity: 1;
+}

@@ -1,0 +1,72 @@
+.monu-tags-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.monu-tag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.4rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  background: #fff;
+  color: var(--monu-ink);
+  border: 1.5px solid #e3e1d4;
+}
+
+.monu-tag-chip--voted {
+  border-width: 1.5px;
+}
+
+.monu-tag-chip--positive.monu-tag-chip--voted {
+  background: #e8f5e9;
+  border-color: #2e7d32;
+  color: #2e7d32;
+}
+
+.monu-tag-chip--neutral.monu-tag-chip--voted {
+  background: #f1f5f9;
+  border-color: #64748b;
+  color: #475569;
+}
+
+.monu-tag-chip--negative.monu-tag-chip--voted {
+  background: #ffebee;
+  border-color: #c62828;
+  color: #c62828;
+}
+
+.monu-tag-chip-count {
+  font-size: 0.72rem;
+  color: var(--monu-muted);
+  font-weight: 700;
+}
+
+.monu-tag-add-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: var(--monu-accent);
+  color: var(--monu-ink);
+  cursor: pointer;
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+
+.monu-tag-add-btn:hover {
+  background: var(--monu-accent-dark);
+}
+
+.monu-tags-empty {
+  margin: 0.5rem 0 0;
+  font-size: 0.85rem;
+  color: var(--monu-muted);
+}

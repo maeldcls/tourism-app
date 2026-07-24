@@ -4,6 +4,8 @@ import '../css/Monument.css';
 import ImageLightbox from '../components/ImageLightbox';
 import AddToTripDialog from '../components/AddToTripDialog';
 import CommentsSection from '../components/CommentsSection';
+import RatingWidget from '../components/RatingWidget';
+import MonumentTags from '../components/MonumentTags';
 import { useMonumentImages } from '../hooks/useMonumentImages';
 
 const MAX_VISIBLE_THUMBS = 3;
@@ -245,6 +247,10 @@ export default function Monument() {
               )}
             </div>
           )}
+
+          <RatingWidget monumentId={monument.id} />
+
+          <MonumentTags monumentId={monument.id} />
 
           <CommentsSection monumentId={monument.id} />
         </div>

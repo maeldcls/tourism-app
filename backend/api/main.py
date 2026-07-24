@@ -11,6 +11,9 @@ from routes.trips import router as trips_router
 from routes.recommendations import router as recommendations_router
 from routes.comments import router as comments_router
 from routes.admin import router as admin_router
+from routes.ratings import router as ratings_router
+from routes.admin_tags import router as admin_tags_router
+from routes.monument_tags import router as monument_tags_router
 
 app = FastAPI(title="Tourism API")
 
@@ -36,6 +39,9 @@ app.include_router(trips_router)
 app.include_router(recommendations_router)
 app.include_router(comments_router)
 app.include_router(admin_router)
+app.include_router(ratings_router)
+app.include_router(admin_tags_router)
+app.include_router(monument_tags_router)
 
 # Routes de test temporaires — à supprimer avant la prod
 app.include_router(test_router)

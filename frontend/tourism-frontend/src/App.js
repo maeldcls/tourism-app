@@ -13,6 +13,7 @@ import Stats from './pages/Stats';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import AdminComments from './pages/AdminComments';
+import AdminTags from './pages/AdminTags';
 
 const NO_NAVBAR = ['/login', '/register'];
 
@@ -33,6 +34,7 @@ function Layout() {
         <Route path="/profile" element={<Profile />} />
         <Route path="/stats" element={<Stats />} />
         <Route path="/admin/comments" element={<AdminComments />} />
+        <Route path="/admin/tags" element={<AdminTags />} />
       </Routes>
       {showNavbar && <Navbar />}
     </>
