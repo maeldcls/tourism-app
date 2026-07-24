@@ -81,4 +81,4 @@ def remove_comment(
     comment.moderated_by = admin.id
     comment.moderated_at = datetime.utcnow()
     db.commit()
-    return {"detail": "Commentaire supprimé"}
+    return {"detail": "Commentaire supprimé."}
