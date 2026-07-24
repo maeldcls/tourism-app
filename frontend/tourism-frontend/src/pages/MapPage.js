@@ -1,10 +1,12 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import { useLocation } from 'react-router-dom';
+import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import '../css/MapPage.css';
 import MonumentSheet from '../components/MonumentSheet';
 import MapSearchBar from '../components/MapSearchBar';
+import { useAuth } from '../context/AuthContext';
 import API_URL from '../config';
 
 // ── Constantes ────────────────────────────────────────────────────────────────
@@ -57,6 +59,64 @@ function makeIcon(color, selected = false) {
     html: svg, className: '',
     iconSize: [size, h], iconAnchor: [size / 2, h], popupAnchor: [0, -(h + 2)],
   });
+}
+
+// ── Icônes des trajets (distinctes des POI, couleur selon visité/non visité) ──
+const TRIP_VISITED_COLOR = '#a8b826';
+const TRIP_PENDING_COLOR = '#1e3a5f';
+
+function makeTripIcon(visited) {
+  const color = visited ? TRIP_VISITED_COLOR : TRIP_PENDING_COLOR;
+  const size = 30;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="${size}" height="${size}">
+    <circle cx="12" cy="12" r="10" fill="${color}" stroke="#fff" stroke-width="2.5"/>
+    <path d="M8 6.5v11M8 6.5l7.5 3L8 12.5" fill="none" stroke="#fff" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>
+  </svg>`;
+  return L.divIcon({
+    html: svg, className: '',
+    iconSize: [size, size], iconAnchor: [size / 2, size / 2], popupAnchor: [0, -(size / 2 + 4)],
+  });
+}
+
+// ── Couche affichant les marqueurs + le tracé d'un trajet sélectionné ─────────
+function TripRouteLayer({ trip, routeCoords }) {
+  const map = useMap();
+  const fittedRef = useRef(null);
+
+  useEffect(() => {
+    if (!trip || fittedRef.current === trip.id) return;
+    const pts = trip.monuments
+      .filter(m => m.latitude != null && m.longitude != null)
+      .map(m => [m.latitude, m.longitude]);
+    if (pts.length === 0) return;
+    fittedRef.current = trip.id;
+    if (pts.length === 1) {
+      map.flyTo(pts[0], 16, { duration: 1.2 });
+    } else {
+      map.flyToBounds(pts, { duration: 1.2, padding: [60, 60] });
+    }
+  }, [trip, map]);
+
+  if (!trip) return null;
+
+  return (
+    <>
+      {routeCoords.length > 1 && (
+        <Polyline positions={routeCoords} pathOptions={{ color: TRIP_PENDING_COLOR, weight: 4, opacity: 0.85 }} />
+      )}
+      {trip.monuments.map(m => (
+        m.latitude != null && m.longitude != null && (
+          <Marker
+            key={m.monument_id}
+            position={[m.latitude, m.longitude]}
+            icon={makeTripIcon(m.is_visited)}
+          >
+            <Popup>{m.name}{m.is_visited ? ' — visité' : ''}</Popup>
+          </Marker>
+        )
+      ))}
+    </>
+  );
 }
 
 // ── Grille de tuiles ──────────────────────────────────────────────────────────
@@ -131,6 +191,8 @@ function MapEventsHandler({ onBoundsChange, onFetchNeeded, debounceRef }) {
 // ── Composant principal ───────────────────────────────────────────────────────
 export default function MapPage() {
   const savedPos = loadSavedPos(); // lire avant le premier render
+  const { state } = useLocation();
+  const { token } = useAuth();
 
   const [pois, setPois]               = useState([]);
   const [userPos, setUserPos]         = useState(null);
@@ -138,6 +200,8 @@ export default function MapPage() {
   const [loading, setLoading]         = useState(false);
   const [selected, setSelected]       = useState(null);
   const [mapView, setMapView]         = useState(null); // { zoom, bounds }
+  const [trip, setTrip]               = useState(state?.trip ?? null);
+  const [tripRoute, setTripRoute]     = useState([]);
 
   // Cache en mémoire : survit aux re-renders, pas besoin de re-fetch
   const poisMapRef   = useRef(new Map()); // id → poi (accumulation)
@@ -153,6 +217,17 @@ export default function MapPage() {
       () => {}
     );
   }, []);
+
+  // Trajet sélectionné depuis la page Voyages → on récupère le tracé (ORS)
+  useEffect(() => {
+    if (!trip) { setTripRoute([]); return; }
+    fetch(`${API}/trips/${trip.id}/route`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(r => r.ok ? r.json() : { coordinates: [] })
+      .then(data => setTripRoute(data.coordinates || []))
+      .catch(() => setTripRoute([]));
+  }, [trip, token]);
 
   const recenterOnUser = useCallback(() => {
     if (userPos && mapRef.current) {
@@ -275,6 +350,13 @@ export default function MapPage() {
 
       {loading && <div className="mappage-loading">Chargement…</div>}
 
+      {trip && (
+        <div className="mappage-trip-banner">
+          <span>Itinéraire : {trip.name}</span>
+          <button onClick={() => setTrip(null)} aria-label="Quitter le mode itinéraire">×</button>
+        </div>
+      )}
+
       <MapContainer
         center={savedPos?.center ?? DEFAULT_CENTER}
         zoom={savedPos?.zoom ?? DEFAULT_ZOOM}
@@ -300,6 +382,8 @@ export default function MapPage() {
             <Popup>Vous êtes ici</Popup>
           </Marker>
         )}
+
+        <TripRouteLayer trip={trip} routeCoords={tripRoute} />
 
         {/* POI — seulement ceux dans la vue actuelle */}
         {visible.map(poi => {

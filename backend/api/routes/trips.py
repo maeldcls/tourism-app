@@ -8,14 +8,20 @@ PATCH  /trips/{trip_id}/monuments/{monument_id}   → marquer un monument comme 
 DELETE /trips/{trip_id}/monuments/{monument_id}   → retirer un monument du trajet
 DELETE /trips/{trip_id}                           → supprimer un trajet
 """
+import os
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import Optional
+import requests
 from database import get_db
+from deps import get_current_user
 import models
 
 router = APIRouter(prefix="/trips", tags=["Trajets"])
+
+ORS_API_KEY = os.getenv("ORS_API_KEY", "")
+ORS_URL = "https://api.openrouteservice.org/v2/directions/foot-walking/geojson"
 
 
 class TripCreate(BaseModel):
@@ -157,3 +163,50 @@ def delete_trip(trip_id: int, db: Session = Depends(get_db)):
     db.delete(trip)
     db.commit()
     return {"detail": "Trajet supprimé"}
+
+
+# ── GET /trips/{trip_id}/route ─────────────────────────────────────────────────
+@router.get("/{trip_id}/route")
+def get_trip_route(
+    trip_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    trip = db.query(models.Trip).filter(models.Trip.id == trip_id).first()
+    if not trip:
+        raise HTTPException(status_code=404, detail="Trajet introuvable")
+    if trip.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Accès refusé")
+
+    ordered = sorted(trip.trip_monuments, key=lambda tm: tm.order)
+    coords = [
+        [tm.monument.longitude, tm.monument.latitude]
+        for tm in ordered
+        if tm.monument and tm.monument.latitude is not None and tm.monument.longitude is not None
+    ]
+
+    if len(coords) < 2:
+        return {"coordinates": [], "distance": None, "duration": None}
+
+    if not ORS_API_KEY:
+        raise HTTPException(status_code=503, detail="Service d'itinéraire non configuré")
+
+    try:
+        resp = requests.post(
+            ORS_URL,
+            headers={"Authorization": ORS_API_KEY, "Content-Type": "application/json"},
+            json={"coordinates": coords},
+            timeout=10,
+        )
+        resp.raise_for_status()
+    except requests.RequestException:
+        raise HTTPException(status_code=502, detail="Impossible de calculer l'itinéraire")
+
+    feature = resp.json()["features"][0]
+    summary = feature["properties"]["summary"]
+
+    return {
+        "coordinates": [[lat, lon] for lon, lat in feature["geometry"]["coordinates"]],
+        "distance": summary.get("distance"),
+        "duration": summary.get("duration"),
+    }
