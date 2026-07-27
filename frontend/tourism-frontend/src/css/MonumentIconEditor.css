@@ -1,0 +1,90 @@
+.mie-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(3px);
+  z-index: 100;
+}
+
+.mie-popover {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(340px, calc(100vw - 2.5rem));
+  background: #fff;
+  border-radius: 18px;
+  z-index: 101;
+  padding: 1.1rem 1.1rem 1.4rem;
+  box-shadow: 0 12px 40px rgba(15, 23, 42, 0.25);
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
+.mie-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.85rem;
+}
+
+.mie-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #1e3a5f;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding-right: 0.5rem;
+}
+
+.mie-close {
+  background: #f1f5f9;
+  border: none;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #64748b;
+  padding: 0;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+
+.mie-close:hover { background: #e2e8f0; }
+.mie-close svg { width: 15px; height: 15px; }
+
+.mie-save-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.65rem 1rem;
+  background: #c87941;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.mie-save-btn:hover:not(:disabled) { background: #b06a35; }
+.mie-save-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.mie-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: mie-spin 0.7s linear infinite;
+}
+
+@keyframes mie-spin {
+  to { transform: rotate(360deg); }
+}

@@ -25,6 +25,7 @@ class User(Base):
     comments = relationship("Comment", back_populates="user", foreign_keys="Comment.user_id")
     ratings = relationship("Rating", back_populates="user")
     monument_tags = relationship("MonumentTag", back_populates="user")
+    custom_points = relationship("CustomPoint", back_populates="user", cascade="all, delete-orphan")
 
 
 class Monument(Base):
@@ -132,6 +133,7 @@ class Trip(Base):
 
     user = relationship("User", back_populates="trips")
     trip_monuments = relationship("TripMonument", back_populates="trip", cascade="all, delete-orphan")
+    custom_points = relationship("CustomPoint", back_populates="trip")
 
 
 class TripMonument(Base):
@@ -142,10 +144,36 @@ class TripMonument(Base):
     order = Column(BigInteger, default=0)
     day = Column(Integer, nullable=True)
     is_visited = Column(Boolean, default=False)
+    icon = Column(String(50), nullable=True)  # override de l'icône par défaut de la catégorie
+    color = Column(String(20), nullable=True)  # override de la couleur par défaut
+    is_hidden = Column(Boolean, nullable=False, default=False)
     added_at = Column(TIMESTAMP, default=datetime.utcnow)
 
     trip = relationship("Trip", back_populates="trip_monuments")
     monument = relationship("Monument", back_populates="trip_monuments")
+
+
+class CustomPoint(Base):
+    """Point créé librement par l'utilisateur sur la carte (hors monuments OSM),
+    à la manière de Google My Maps. Peut exister sans être rattaché à un trajet."""
+    __tablename__ = "custom_points"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(BigInteger, ForeignKey("users.id"), nullable=False)
+    trip_id = Column(BigInteger, ForeignKey("trips.id", ondelete="SET NULL"), nullable=True)
+    name = Column(String(255), nullable=False)
+    icon = Column(String(50), nullable=False, default="pin")
+    color = Column(String(20), nullable=True)
+    latitude = Column(Float, nullable=False)
+    longitude = Column(Float, nullable=False)
+    order = Column(BigInteger, default=0)
+    day = Column(Integer, nullable=True)
+    is_visited = Column(Boolean, nullable=False, default=False)
+    is_hidden = Column(Boolean, nullable=False, default=False)
+    created_at = Column(TIMESTAMP, default=datetime.utcnow)
+
+    user = relationship("User", back_populates="custom_points")
+    trip = relationship("Trip", back_populates="custom_points")
 
 
 class MonumentTheme(Base):

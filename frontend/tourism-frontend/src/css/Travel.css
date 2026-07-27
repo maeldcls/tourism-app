@@ -565,6 +565,19 @@
   color: #b8b6a4;
 }
 
+.trip-thumb--point {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.trip-thumb-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+}
+
 .trip-monument-info {
   display: flex;
   flex-direction: column;
@@ -584,6 +597,26 @@
 .trip-monument-city {
   font-size: 0.75rem;
   color: var(--travel-muted);
+}
+
+.trip-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  background: none;
+  border: none;
+  border-radius: 50%;
+  color: var(--travel-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: color 0.15s, background 0.15s;
+}
+
+.trip-action-btn:hover {
+  color: #1e3a5f;
+  background: rgba(30, 58, 95, 0.08);
 }
 
 .trip-remove-btn {
@@ -628,6 +661,24 @@
 }
 
 .trip-map-btn:hover { background: #e8eef5; }
+
+.trip-addpoint-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.75rem;
+  margin-bottom: 0.6rem;
+  background: none;
+  border: 1.5px solid #c87941;
+  border-radius: 8px;
+  color: #c87941;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.trip-addpoint-btn:hover { background: #fdf1e7; }
 
 .trip-delete-btn {
   display: flex;

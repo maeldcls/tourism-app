@@ -87,6 +87,15 @@
 
 .mappage-trip-banner button:hover { opacity: 1; }
 
+.mappage-trip-banner--add {
+  background: #c87941;
+}
+
+/* ── Curseur en mode ajout de point ─────────────────────────────── */
+.mappage-map--adding {
+  cursor: crosshair;
+}
+
 /* ── Compteur ────────────────────────────────────────────────────── */
 .mappage-count {
   position: absolute;
@@ -116,6 +125,53 @@
   background: #fff;
   box-shadow: 0 1px 6px rgba(0,0,0,0.25);
   font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+}
+
+/* ── Bouton ajouter un point personnalisé ───────────────────────── */
+.mappage-addpoint-btn {
+  position: absolute;
+  bottom: 122px;
+  left: 12px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background: #c87941;
+  color: #fff;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.25);
+  font-size: 1.5rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  transition: background 0.15s, transform 0.15s;
+}
+
+.mappage-addpoint-btn:hover { background: #b06a35; }
+
+.mappage-addpoint-btn--active {
+  background: #dc2626;
+}
+
+/* ── Bouton gérer mes points ─────────────────────────────────────── */
+.mappage-points-btn {
+  position: absolute;
+  bottom: 122px;
+  right: 12px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background: #fff;
+  color: #1e3a5f;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.25);
   display: flex;
   align-items: center;
   justify-content: center;

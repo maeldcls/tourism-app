@@ -1,16 +1,20 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
-import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import '../css/MapPage.css';
 import MonumentSheet from '../components/MonumentSheet';
 import MapSearchBar from '../components/MapSearchBar';
+import AddCustomPointSheet from '../components/AddCustomPointSheet';
+import PointsManagerSheet from '../components/PointsManagerSheet';
 import { useAuth } from '../context/AuthContext';
 import API_URL from '../config';
+import { makePointIcon } from '../utils/pointIcons';
 
 // ── Constantes ────────────────────────────────────────────────────────────────
-const MIN_ZOOM  = 13;   // en dessous → pas de chargement
+const MIN_ZOOM  = 13;   // en dessous → pas de chargement des POI
+const MIN_ZOOM_MY_POINTS = 9; // en dessous → les points de l'utilisateur restent cachés
 const CELL_DEG  = 0.025; // ~2.5 km par cellule de grille
 const DEFAULT_CENTER = [48.8566, 2.3522];
 const DEFAULT_ZOOM   = 15;
@@ -61,25 +65,11 @@ function makeIcon(color, selected = false) {
   });
 }
 
-// ── Icônes des trajets (distinctes des POI, couleur selon visité/non visité) ──
-const TRIP_VISITED_COLOR = '#a8b826';
+// ── Couleur du tracé d'un trajet sélectionné ───────────────────────────────────
 const TRIP_PENDING_COLOR = '#1e3a5f';
 
-function makeTripIcon(visited) {
-  const color = visited ? TRIP_VISITED_COLOR : TRIP_PENDING_COLOR;
-  const size = 30;
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="${size}" height="${size}">
-    <circle cx="12" cy="12" r="10" fill="${color}" stroke="#fff" stroke-width="2.5"/>
-    <path d="M8 6.5v11M8 6.5l7.5 3L8 12.5" fill="none" stroke="#fff" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>
-  </svg>`;
-  return L.divIcon({
-    html: svg, className: '',
-    iconSize: [size, size], iconAnchor: [size / 2, size / 2], popupAnchor: [0, -(size / 2 + 4)],
-  });
-}
-
 // ── Couche affichant les marqueurs + le tracé d'un trajet sélectionné ─────────
-function TripRouteLayer({ trip, routeCoords }) {
+function TripRouteLayer({ trip, routeCoords, onSelect }) {
   const map = useMap();
   const fittedRef = useRef(null);
 
@@ -99,21 +89,22 @@ function TripRouteLayer({ trip, routeCoords }) {
 
   if (!trip) return null;
 
+  // Numéroté selon l'ordre du trajet (celui utilisé pour le tracé ORS) — les
+  // monuments sans coordonnées sont exclus pour ne pas décaler la numérotation.
+  const ordered = trip.monuments.filter(m => m.latitude != null && m.longitude != null);
+
   return (
     <>
       {routeCoords.length > 1 && (
         <Polyline positions={routeCoords} pathOptions={{ color: TRIP_PENDING_COLOR, weight: 4, opacity: 0.85 }} />
       )}
-      {trip.monuments.map(m => (
-        m.latitude != null && m.longitude != null && (
-          <Marker
-            key={m.monument_id}
-            position={[m.latitude, m.longitude]}
-            icon={makeTripIcon(m.is_visited)}
-          >
-            <Popup>{m.name}{m.is_visited ? ' — visité' : ''}</Popup>
-          </Marker>
-        )
+      {ordered.map((m, i) => (
+        <Marker
+          key={m.monument_id}
+          position={[m.latitude, m.longitude]}
+          icon={makePointIcon(m.icon, m.color, { visited: m.is_visited, orderNumber: i + 1 })}
+          eventHandlers={{ click: () => onSelect(m) }}
+        />
       ))}
     </>
   );
@@ -146,6 +137,16 @@ async function fetchApiBbox(south, west, north, east) {
   const res = await fetch(url, { signal: AbortSignal.timeout(10_000) });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return await res.json(); // [{ id, name, latitude, longitude, category, city, description }]
+}
+
+// ── Capture des clics carte en mode "ajout de point" ──────────────────────────
+function AddPointClickHandler({ active, onPick }) {
+  useMapEvents({
+    click(e) {
+      if (active) onPick(e.latlng);
+    },
+  });
+  return null;
 }
 
 // ── Gestionnaire d'événements map (inside MapContainer) ───────────────────────
@@ -192,7 +193,9 @@ function MapEventsHandler({ onBoundsChange, onFetchNeeded, debounceRef }) {
 export default function MapPage() {
   const savedPos = loadSavedPos(); // lire avant le premier render
   const { state } = useLocation();
-  const { token } = useAuth();
+  const { user, token } = useAuth();
+  const presetTripId   = state?.presetTripId ?? null; // trajet préselectionné depuis Travel.js
+  const presetTripName = state?.presetTripName ?? null;
 
   const [pois, setPois]               = useState([]);
   const [userPos, setUserPos]         = useState(null);
@@ -202,6 +205,11 @@ export default function MapPage() {
   const [mapView, setMapView]         = useState(null); // { zoom, bounds }
   const [trip, setTrip]               = useState(state?.trip ?? null);
   const [tripRoute, setTripRoute]     = useState([]);
+  const [myPoints, setMyPoints]       = useState([]); // monuments-en-trajet + points custom de l'utilisateur
+  const [myTrips, setMyTrips]         = useState([]); // liste légère {id, name} pour le menu de réassignation
+  const [addMode, setAddMode]         = useState(() => !!presetTripId); // mode "ajout de point" actif (clic à venir)
+  const [pendingPoint, setPendingPoint] = useState(null); // {lat, lng} en attente de validation via le formulaire
+  const [showPointsManager, setShowPointsManager] = useState(false); // bottom-sheet de gestion des points
 
   // Cache en mémoire : survit aux re-renders, pas besoin de re-fetch
   const poisMapRef   = useRef(new Map()); // id → poi (accumulation)
@@ -217,6 +225,30 @@ export default function MapPage() {
       () => {}
     );
   }, []);
+
+  // Tous les points de l'utilisateur (monuments ajoutés à un trajet + points
+  // personnalisés) — jeu de données réduit, pas besoin de grille de tuiles.
+  useEffect(() => {
+    if (!user || !token) return;
+    fetch(`${API}/trips/user/${user.id}/points`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(r => r.ok ? r.json() : [])
+      .then(data => setMyPoints(Array.isArray(data) ? data : []))
+      .catch(() => {});
+  }, [user, token]);
+
+  // Liste légère des trajets de l'utilisateur, pour le menu "déplacer vers…"
+  // du panneau de gestion des points.
+  useEffect(() => {
+    if (!user || !token) return;
+    fetch(`${API}/trips/user/${user.id}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(r => r.ok ? r.json() : [])
+      .then(data => setMyTrips(Array.isArray(data) ? data.map(t => ({ id: t.id, name: t.name })) : []))
+      .catch(() => {});
+  }, [user, token]);
 
   // Trajet sélectionné depuis la page Voyages → on récupère le tracé (ORS)
   useEffect(() => {
@@ -292,16 +324,39 @@ export default function MapPage() {
     }
   }, []);
 
+  // Points de l'utilisateur — seulement quand aucun trajet n'est mis en avant
+  // spécifiquement (TripRouteLayer prend le relais dans ce cas, pour ne pas
+  // dupliquer les marqueurs), au-delà du zoom minimum et dans les bounds actuels.
+  const visibleMyPoints = useMemo(() => {
+    if (trip || !mapView || mapView.zoom < MIN_ZOOM_MY_POINTS) return [];
+    const { south, west, north, east } = mapView.bounds;
+    return myPoints.filter(p =>
+      !p.is_hidden &&
+      p.latitude != null && p.longitude != null &&
+      p.latitude  >= south && p.latitude  <= north &&
+      p.longitude >= west  && p.longitude <= east
+    );
+  }, [myPoints, mapView, trip]);
+
+  // Monuments déjà représentés par un marqueur "point utilisateur" (icône/couleur
+  // personnalisée, éventuellement badge visité/numéro) — on masque le pin POI
+  // générique correspondant pour qu'il ne se superpose pas dessus et le cache.
+  const coveredMonumentIds = useMemo(() => {
+    if (trip) return new Set(trip.monuments.map(m => m.monument_id));
+    return new Set(visibleMyPoints.filter(p => p.kind === 'monument').map(p => p.monument_id));
+  }, [trip, visibleMyPoints]);
+
   // Filtrage visuel : uniquement ce qui est dans les bounds actuels (pas de requête)
   const visible = useMemo(() => {
     if (!mapView || mapView.zoom < MIN_ZOOM) return [];
     const { south, west, north, east } = mapView.bounds;
     return pois.filter(p =>
       activeCategories.includes(p.category) &&
+      !coveredMonumentIds.has(p.id) &&
       p.latitude  >= south && p.latitude  <= north &&
       p.longitude >= west  && p.longitude <= east
     );
-  }, [pois, activeCategories, mapView]);
+  }, [pois, activeCategories, mapView, coveredMonumentIds]);
 
   const presentCategories = useMemo(
     () => [...new Set(pois.map(p => p.category))],
@@ -316,6 +371,109 @@ export default function MapPage() {
 
   function selectPoi(poi) {
     setSelected({ ...poi, _cat: getCategory(poi.category) });
+  }
+
+  // Clic sur un marqueur de monument en mode "voir sur la carte" d'un trajet
+  // → ouvre la fiche détaillée du monument (au lieu d'une simple bulle avec le nom).
+  function selectTripMonument(m) {
+    setSelected({
+      id: m.monument_id,
+      name: m.name,
+      category: m.category,
+      latitude: m.latitude,
+      longitude: m.longitude,
+      _cat: getCategory(m.category),
+    });
+  }
+
+  function toggleAddMode() {
+    setPendingPoint(null);
+    setAddMode(a => !a);
+  }
+
+  function handlePointCreated(point) {
+    setMyPoints(prev => [...prev, {
+      kind: 'custom',
+      trip_id: point.trip_id,
+      custom_point_id: point.id,
+      name: point.name,
+      category: null,
+      latitude: point.latitude,
+      longitude: point.longitude,
+      icon: point.icon,
+      color: point.color,
+      is_visited: point.is_visited,
+      is_hidden: point.is_hidden,
+      day: point.day,
+      order: point.order,
+    }]);
+    setPendingPoint(null);
+  }
+
+  function samePoint(a, b) {
+    return a.kind === b.kind && (
+      a.kind === 'monument'
+        ? a.trip_id === b.trip_id && a.monument_id === b.monument_id
+        : a.custom_point_id === b.custom_point_id
+    );
+  }
+
+  async function handleToggleHidden(point) {
+    const nextHidden = !point.is_hidden;
+    setMyPoints(prev => prev.map(p => samePoint(p, point) ? { ...p, is_hidden: nextHidden } : p));
+    try {
+      const url = point.kind === 'monument'
+        ? `${API}/trips/${point.trip_id}/monuments/${point.monument_id}`
+        : `${API}/custom-points/${point.custom_point_id}`;
+      const r = await fetch(url, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ is_hidden: nextHidden }),
+      });
+      if (!r.ok) throw new Error();
+    } catch {
+      setMyPoints(prev => prev.map(p => samePoint(p, point) ? { ...p, is_hidden: point.is_hidden } : p));
+    }
+  }
+
+  async function handleDeleteCustomPoint(point) {
+    try {
+      const r = await fetch(`${API}/custom-points/${point.custom_point_id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!r.ok) throw new Error();
+      setMyPoints(prev => prev.filter(p => !samePoint(p, point)));
+    } catch {
+      // laissé tel quel en cas d'échec réseau — le point reste affiché dans le panneau
+    }
+  }
+
+  // Réassigne un point (monument-en-trajet ou point custom) à un autre trajet,
+  // ou le "non attribue" (targetTripId=null, uniquement possible pour un point
+  // custom — un monument reste toujours rattaché à un trajet).
+  async function handleMovePoint(point, targetTripId) {
+    const prevPoints = myPoints;
+    const targetTrip = myTrips.find(t => t.id === targetTripId);
+    setMyPoints(prev => prev.map(p => samePoint(p, point)
+      ? { ...p, trip_id: targetTripId, trip_name: targetTrip?.name ?? null }
+      : p));
+    try {
+      const url = point.kind === 'monument'
+        ? `${API}/trips/${point.trip_id}/monuments/${point.monument_id}/move`
+        : `${API}/custom-points/${point.custom_point_id}`;
+      const body = point.kind === 'monument'
+        ? { target_trip_id: targetTripId }
+        : targetTripId == null ? { unassign_trip: true } : { trip_id: targetTripId };
+      const r = await fetch(url, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(body),
+      });
+      if (!r.ok) throw new Error();
+    } catch {
+      setMyPoints(prevPoints);
+    }
   }
 
   const tooFarOut = mapView && mapView.zoom < MIN_ZOOM;
@@ -357,10 +515,21 @@ export default function MapPage() {
         </div>
       )}
 
+      {addMode && !pendingPoint && (
+        <div className="mappage-trip-banner mappage-trip-banner--add">
+          <span>
+            {presetTripName
+              ? `Cliquez sur la carte pour ajouter un point à « ${presetTripName} »`
+              : 'Cliquez sur la carte pour placer votre point'}
+          </span>
+          <button onClick={toggleAddMode} aria-label="Annuler l'ajout de point">×</button>
+        </div>
+      )}
+
       <MapContainer
         center={savedPos?.center ?? DEFAULT_CENTER}
         zoom={savedPos?.zoom ?? DEFAULT_ZOOM}
-        className="mappage-map"
+        className={`mappage-map${addMode ? ' mappage-map--adding' : ''}`}
         ref={mapRef}
       >
         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
@@ -369,6 +538,14 @@ export default function MapPage() {
           onFetchNeeded={loadNewCells}
           debounceRef={debounceTimer}
         />
+        <AddPointClickHandler
+          active={addMode}
+          onPick={latlng => { setAddMode(false); setPendingPoint(latlng); }}
+        />
+
+        {pendingPoint && (
+          <Marker position={pendingPoint} icon={makePointIcon('pin', '#c87941')} />
+        )}
 
         {/* Position utilisateur */}
         {userPos && (
@@ -383,7 +560,37 @@ export default function MapPage() {
           </Marker>
         )}
 
-        <TripRouteLayer trip={trip} routeCoords={tripRoute} />
+        <TripRouteLayer trip={trip} routeCoords={tripRoute} onSelect={selectTripMonument} />
+
+        {/* Points de l'utilisateur (monuments-en-trajet + points personnalisés) */}
+        {visibleMyPoints.map(p => {
+          const icon = makePointIcon(p.icon, p.color, { visited: p.is_visited });
+          const key = `${p.kind}-${p.kind === 'monument' ? p.monument_id : p.custom_point_id}-${p.trip_id ?? 'none'}`;
+          if (p.kind === 'monument') {
+            return (
+              <Marker
+                key={key}
+                position={[p.latitude, p.longitude]}
+                icon={icon}
+                eventHandlers={{
+                  click: () => setSelected({
+                    id: p.monument_id,
+                    name: p.name,
+                    category: p.category,
+                    latitude: p.latitude,
+                    longitude: p.longitude,
+                    _cat: getCategory(p.category),
+                  }),
+                }}
+              />
+            );
+          }
+          return (
+            <Marker key={key} position={[p.latitude, p.longitude]} icon={icon}>
+              <Popup>{p.name}</Popup>
+            </Marker>
+          );
+        })}
 
         {/* POI — seulement ceux dans la vue actuelle */}
         {visible.map(poi => {
@@ -411,6 +618,30 @@ export default function MapPage() {
         </button>
       )}
 
+      {user && !pendingPoint && (
+        <button
+          className={`mappage-addpoint-btn${addMode ? ' mappage-addpoint-btn--active' : ''}`}
+          onClick={toggleAddMode}
+          aria-label={addMode ? "Annuler l'ajout de point" : 'Ajouter un point personnalisé'}
+          title={addMode ? "Annuler l'ajout de point" : 'Ajouter un point personnalisé'}
+        >
+          {addMode ? '×' : '+'}
+        </button>
+      )}
+
+      {user && (
+        <button
+          className="mappage-points-btn"
+          onClick={() => setShowPointsManager(true)}
+          aria-label="Gérer mes points"
+          title="Gérer mes points"
+        >
+          <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
+            <path d="M4 10.5c-.83 0-1.5.67-1.5 1.5s.67 1.5 1.5 1.5 1.5-.67 1.5-1.5-.67-1.5-1.5-1.5zm0-6c-.83 0-1.5.67-1.5 1.5S3.17 7.5 4 7.5 5.5 6.83 5.5 6 4.83 4.5 4 4.5zm0 12c-.83 0-1.5.68-1.5 1.5s.68 1.5 1.5 1.5 1.5-.68 1.5-1.5-.67-1.5-1.5-1.5zM7 19h14v-2H7v2zm0-6h14v-2H7v2zm0-8v2h14V5H7z" />
+          </svg>
+        </button>
+      )}
+
       <div className="mappage-count">
         {tooFarOut
           ? 'Zoomez pour afficher les points d\'intérêt'
@@ -419,6 +650,23 @@ export default function MapPage() {
       </div>
 
       <MonumentSheet monument={selected} onClose={() => setSelected(null)} />
+
+      <AddCustomPointSheet
+        position={pendingPoint}
+        onClose={() => setPendingPoint(null)}
+        onCreated={handlePointCreated}
+        defaultTripId={presetTripId}
+      />
+
+      <PointsManagerSheet
+        open={showPointsManager}
+        points={myPoints}
+        trips={myTrips}
+        onClose={() => setShowPointsManager(false)}
+        onToggleHidden={handleToggleHidden}
+        onMovePoint={handleMovePoint}
+        onDeleteCustomPoint={handleDeleteCustomPoint}
+      />
     </div>
   );
 }

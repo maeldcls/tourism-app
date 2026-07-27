@@ -10,6 +10,7 @@ from routes.visits import router as visits_router
 from routes.profile import router as profile_router
 from routes.stats import router as stats_router
 from routes.trips import router as trips_router
+from routes.custom_points import router as custom_points_router
 from routes.recommendations import router as recommendations_router
 from routes.comments import router as comments_router
 from routes.admin import router as admin_router
@@ -40,6 +41,7 @@ app.include_router(visits_router)
 app.include_router(profile_router)
 app.include_router(stats_router)
 app.include_router(trips_router)
+app.include_router(custom_points_router)
 app.include_router(recommendations_router)
 app.include_router(comments_router)
 app.include_router(admin_router)

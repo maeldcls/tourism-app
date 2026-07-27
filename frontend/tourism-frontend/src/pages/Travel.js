@@ -4,6 +4,9 @@ import { useAuth } from '../context/AuthContext';
 import API_URL from '../config';
 import '../css/Travel.css';
 import { useMonumentImages } from '../hooks/useMonumentImages';
+import MonumentIconEditor from '../components/MonumentIconEditor';
+import ConfirmDialog from '../components/ConfirmDialog';
+import { ICON_LIBRARY } from '../utils/pointIcons';
 import {
   DndContext, DragOverlay, PointerSensor, KeyboardSensor,
   useSensor, useSensors, useDroppable, closestCenter,
@@ -22,22 +25,42 @@ const STATUS_META = {
   completed: { label: 'Terminé',   color: '#8b8b7a' },
 };
 
+// ── Fusion monuments + points custom en une seule liste d'items de timeline ──
+// Chaque item porte un `itemId` string unique ("m:12" / "c:7") utilisé comme id
+// dnd-kit, et un `kind` ('monument' | 'custom') pour brancher le bon comportement
+// (suppression, édition, navigation) à chaque endroit où l'item est manipulé.
+function normalizeItems(trip) {
+  const monuments = (trip.monuments || []).map(m => ({
+    ...m,
+    kind: 'monument',
+    itemId: `m:${m.monument_id}`,
+  }));
+  const customPoints = (trip.custom_points || []).map(p => ({
+    ...p,
+    kind: 'custom',
+    itemId: `c:${p.custom_point_id}`,
+    city: null,
+  }));
+  return [...monuments, ...customPoints];
+}
+
 // ── Groupement par jour ──────────────────────────────────────────────────────
 // Les conteneurs de jour sont préfixés ("day:1", "day:none", "day:flat") pour ne
-// jamais entrer en collision avec un monument_id (entier) utilisé comme id de
-// carte déplaçable dans dnd-kit.
+// jamais entrer en collision avec un itemId utilisé comme id de carte déplaçable
+// dans dnd-kit.
 function buildGroups(trip) {
+  const items = normalizeItems(trip);
   if (!trip.use_days) {
-    return { 'day:flat': [...trip.monuments].sort((a, b) => a.order - b.order) };
+    return { 'day:flat': items.sort((a, b) => a.order - b.order) };
   }
   const n = trip.day_count || 1;
   const groups = {};
   for (let d = 1; d <= n; d++) groups[`day:${d}`] = [];
   groups['day:none'] = [];
-  const sorted = [...trip.monuments].sort((a, b) => a.order - b.order);
-  for (const m of sorted) {
-    const key = m.day != null && m.day >= 1 && m.day <= n ? `day:${m.day}` : 'day:none';
-    groups[key].push(m);
+  const sorted = [...items].sort((a, b) => a.order - b.order);
+  for (const it of sorted) {
+    const key = it.day != null && it.day >= 1 && it.day <= n ? `day:${it.day}` : 'day:none';
+    groups[key].push(it);
   }
   return groups;
 }
@@ -45,42 +68,42 @@ function buildGroups(trip) {
 function flattenGroups(groups, useDays, dayCount) {
   let out = [];
   if (!useDays) {
-    out = (groups['day:flat'] || []).map(m => ({ ...m, day: null }));
+    out = (groups['day:flat'] || []).map(it => ({ ...it, day: null }));
   } else {
     for (let d = 1; d <= dayCount; d++) {
-      out.push(...(groups[`day:${d}`] || []).map(m => ({ ...m, day: d })));
+      out.push(...(groups[`day:${d}`] || []).map(it => ({ ...it, day: d })));
     }
-    out.push(...(groups['day:none'] || []).map(m => ({ ...m, day: null })));
+    out.push(...(groups['day:none'] || []).map(it => ({ ...it, day: null })));
   }
-  return out.map((m, idx) => ({ ...m, order: idx }));
+  return out.map((it, idx) => ({ ...it, order: idx }));
 }
 
 function findContainer(id, groups) {
   if (typeof id === 'string' && id.startsWith('day:') && id in groups) return id;
-  return Object.keys(groups).find(key => groups[key].some(m => m.monument_id === id));
+  return Object.keys(groups).find(key => groups[key].some(it => it.itemId === id));
 }
 
-// Calcule les traits de la timeline reliant deux monuments visités consécutifs,
-// avec une petite animation qui part du monument qu'on vient de cocher.
+// Calcule les traits de la timeline reliant deux éléments visités consécutifs,
+// avec une petite animation qui part de l'élément qu'on vient de cocher.
 function computeLineProps(items, i, justToggled) {
   const total = items.length;
   const prev = items[i - 1];
   const next = items[i + 1];
-  const m = items[i];
+  const it = items[i];
   const HALF = 0.25;
 
-  const topConnected = i > 0 && prev.is_visited && m.is_visited;
+  const topConnected = i > 0 && prev.is_visited && it.is_visited;
   let topAnimate = false, topOrigin = 'top', topDelay = 0;
   if (topConnected) {
-    if (justToggled === m.monument_id) { topAnimate = true; topOrigin = 'bottom'; topDelay = 0; }
-    else if (justToggled === prev?.monument_id) { topAnimate = true; topOrigin = 'top'; topDelay = HALF; }
+    if (justToggled === it.itemId) { topAnimate = true; topOrigin = 'bottom'; topDelay = 0; }
+    else if (justToggled === prev?.itemId) { topAnimate = true; topOrigin = 'top'; topDelay = HALF; }
   }
 
-  const bottomConnected = i < total - 1 && m.is_visited && next.is_visited;
+  const bottomConnected = i < total - 1 && it.is_visited && next.is_visited;
   let bottomAnimate = false, bottomOrigin = 'top', bottomDelay = 0;
   if (bottomConnected) {
-    if (justToggled === m.monument_id) { bottomAnimate = true; bottomOrigin = 'top'; bottomDelay = 0; }
-    else if (justToggled === next?.monument_id) { bottomAnimate = true; bottomOrigin = 'bottom'; bottomDelay = HALF; }
+    if (justToggled === it.itemId) { bottomAnimate = true; bottomOrigin = 'top'; bottomDelay = 0; }
+    else if (justToggled === next?.itemId) { bottomAnimate = true; bottomOrigin = 'bottom'; bottomDelay = HALF; }
   }
 
   return {
@@ -112,8 +135,24 @@ function TripMonumentThumb({ monument }) {
   );
 }
 
-function SortableMonumentItem({ m, lineProps, onToggleVisited, onRemove, removingId }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: m.monument_id });
+function TripCustomPointThumb({ icon, color }) {
+  const def = ICON_LIBRARY[icon] || ICON_LIBRARY.pin;
+  const fill = color || def.color;
+  return (
+    <div className="trip-thumb trip-thumb--point" style={{ background: fill }}>
+      {def.glyph ? (
+        <svg viewBox="0 0 24 24" fill="#fff" width="22" height="22" dangerouslySetInnerHTML={{ __html: def.glyph }} />
+      ) : (
+        <span className="trip-thumb-dot" />
+      )}
+    </div>
+  );
+}
+
+function SortableTimelineItem({ item, lineProps, onToggleVisited, onRemove, removingId, onUpdateIcon, onViewDetail }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.itemId });
+  const [editingIcon, setEditingIcon] = useState(false);
+  const [confirmingRemove, setConfirmingRemove] = useState(false);
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
@@ -124,6 +163,8 @@ function SortableMonumentItem({ m, lineProps, onToggleVisited, onRemove, removin
     bottomConnected, bottomAnimate, bottomOrigin, bottomDelay,
     isFirst, isLast,
   } = lineProps;
+
+  const isCustom = item.kind === 'custom';
 
   return (
     <div className="trip-timeline-row" ref={setNodeRef} style={style}>
@@ -139,11 +180,11 @@ function SortableMonumentItem({ m, lineProps, onToggleVisited, onRemove, removin
           style={topAnimate ? { animationDelay: `${topDelay}s` } : undefined}
         />
         <button
-          className={`trip-node${m.is_visited ? ' trip-node--done' : ''}`}
+          className={`trip-node${item.is_visited ? ' trip-node--done' : ''}`}
           onClick={onToggleVisited}
-          aria-label={m.is_visited ? `Marquer ${m.name} comme non visité` : `Marquer ${m.name} comme visité`}
+          aria-label={item.is_visited ? `Marquer ${item.name} comme non visité` : `Marquer ${item.name} comme visité`}
         >
-          {m.is_visited && (
+          {item.is_visited && (
             <svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13">
               <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" />
             </svg>
@@ -162,15 +203,45 @@ function SortableMonumentItem({ m, lineProps, onToggleVisited, onRemove, removin
       </div>
 
       <div
-        className={`trip-monument-card${m.is_visited ? ' trip-monument-card--visited' : ''}`}
+        className={`trip-monument-card${item.is_visited ? ' trip-monument-card--visited' : ''}`}
         {...attributes}
         {...listeners}
       >
-        <TripMonumentThumb monument={{ id: m.monument_id, name: m.name, latitude: m.latitude, longitude: m.longitude }} />
+        {isCustom ? (
+          <TripCustomPointThumb icon={item.icon} color={item.color} />
+        ) : (
+          <TripMonumentThumb monument={{ id: item.monument_id, name: item.name, latitude: item.latitude, longitude: item.longitude }} />
+        )}
         <div className="trip-monument-info">
-          <span className="trip-monument-name">{m.name}</span>
-          {m.city && <span className="trip-monument-city">{m.city}</span>}
+          <span className="trip-monument-name">{item.name}</span>
+          {isCustom ? (
+            <span className="trip-monument-city">Point personnalisé</span>
+          ) : (
+            item.city && <span className="trip-monument-city">{item.city}</span>
+          )}
         </div>
+        {!isCustom && (
+          <button
+            className="trip-action-btn"
+            onClick={() => onViewDetail(item)}
+            aria-label={`Voir la page de ${item.name}`}
+            title="Voir la page du monument"
+          >
+            <svg viewBox="0 0 24 24" fill="currentColor" width="15" height="15">
+              <path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z" />
+            </svg>
+          </button>
+        )}
+        <button
+          className="trip-action-btn"
+          onClick={() => setEditingIcon(true)}
+          aria-label={`Personnaliser l'icône de ${item.name}`}
+          title="Personnaliser l'icône"
+        >
+          <svg viewBox="0 0 24 24" fill="currentColor" width="15" height="15">
+            <path d="M12 3C7.03 3 2 6.13 2 11.5 2 15.09 4.13 17 6.5 17c.8 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.4-1.01-.25-.27-.4-.62-.4-1.01 0-.83.67-1.5 1.5-1.5H11c3.31 0 6-2.69 6-6 0-1.71-.72-3-2-3.5C15.87 3.34 14.5 3 12 3zm-5.5 8.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM9 8c-.83 0-1.5-.67-1.5-1.5S8.17 5 9 5s1.5.67 1.5 1.5S9.83 8 9 8zm4 0c-.83 0-1.5-.67-1.5-1.5S12.17 5 13 5s1.5.67 1.5 1.5S13.83 8 13 8zm3 3c-.83 0-1.5-.67-1.5-1.5S15.17 8 16 8s1.5.67 1.5 1.5S16.83 11 16 11z" />
+          </svg>
+        </button>
         <svg className="trip-drag-grip" viewBox="0 0 24 24" fill="currentColor" width="14" height="14">
           <circle cx="9" cy="6" r="1.4" /><circle cx="15" cy="6" r="1.4" />
           <circle cx="9" cy="12" r="1.4" /><circle cx="15" cy="12" r="1.4" />
@@ -178,11 +249,11 @@ function SortableMonumentItem({ m, lineProps, onToggleVisited, onRemove, removin
         </svg>
         <button
           className="trip-remove-btn"
-          onClick={onRemove}
-          disabled={removingId === m.monument_id}
-          aria-label={`Retirer ${m.name}`}
+          onClick={() => setConfirmingRemove(true)}
+          disabled={removingId === item.itemId}
+          aria-label={isCustom ? `Supprimer ${item.name}` : `Retirer ${item.name}`}
         >
-          {removingId === m.monument_id ? (
+          {removingId === item.itemId ? (
             <div className="trip-mini-spinner" />
           ) : (
             <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14">
@@ -191,16 +262,37 @@ function SortableMonumentItem({ m, lineProps, onToggleVisited, onRemove, removin
           )}
         </button>
       </div>
+
+      {editingIcon && (
+        <MonumentIconEditor
+          name={item.name}
+          icon={item.icon}
+          color={item.color}
+          onSave={(icon, color) => onUpdateIcon(icon, color)}
+          onClose={() => setEditingIcon(false)}
+        />
+      )}
+
+      <ConfirmDialog
+        open={confirmingRemove}
+        title={isCustom ? `Supprimer ${item.name} ?` : `Retirer ${item.name} ?`}
+        message={isCustom
+          ? 'Ce point personnalisé sera définitivement supprimé.'
+          : 'Ce monument sera retiré de ce trajet (vous pourrez le rajouter plus tard).'}
+        confirmLabel={isCustom ? 'Supprimer' : 'Retirer'}
+        onConfirm={async () => { setConfirmingRemove(false); onRemove(); }}
+        onCancel={() => setConfirmingRemove(false)}
+      />
     </div>
   );
 }
 
-function DayGroup({ id, label, items, justToggled, onToggleVisited, onRemove, removingId }) {
+function DayGroup({ id, label, items, justToggled, onToggleVisited, onRemove, removingId, onUpdateIcon, onViewDetail }) {
   const { setNodeRef, isOver } = useDroppable({ id });
   return (
     <div className="trip-day-group">
       {label && <div className="trip-day-label">{label}</div>}
-      <SortableContext items={items.map(m => m.monument_id)} strategy={verticalListSortingStrategy}>
+      <SortableContext items={items.map(it => it.itemId)} strategy={verticalListSortingStrategy}>
         <div
           ref={setNodeRef}
           className={[
@@ -210,15 +302,17 @@ function DayGroup({ id, label, items, justToggled, onToggleVisited, onRemove, re
           ].filter(Boolean).join(' ')}
         >
           {items.length === 0 ? (
-            <div className="trip-day-empty">Glissez un monument ici</div>
-          ) : items.map((m, i) => (
-            <SortableMonumentItem
-              key={m.monument_id}
-              m={m}
+            <div className="trip-day-empty">Glissez un élément ici</div>
+          ) : items.map((it, i) => (
+            <SortableTimelineItem
+              key={it.itemId}
+              item={it}
               lineProps={computeLineProps(items, i, justToggled)}
-              onToggleVisited={() => onToggleVisited(m)}
-              onRemove={() => onRemove(m.monument_id)}
+              onToggleVisited={() => onToggleVisited(it)}
+              onRemove={() => onRemove(it)}
               removingId={removingId}
+              onUpdateIcon={(icon, color) => onUpdateIcon(it, icon, color)}
+              onViewDetail={onViewDetail}
             />
           ))}
         </div>
@@ -227,29 +321,34 @@ function DayGroup({ id, label, items, justToggled, onToggleVisited, onRemove, re
   );
 }
 
-function TripCard({ trip, onRemoveMonument, onDeleteTrip, onToggleVisited, justToggled, onReorderMonuments, onPersistOrder, onUpdateSettings }) {
+function TripCard({ trip, onRemoveItem, onDeleteTrip, onToggleVisited, justToggled, onReorderItems, onPersistOrder, onUpdateSettings, onUpdateItemIcon }) {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [confirmingDeleteTrip, setConfirmingDeleteTrip] = useState(false);
   const [removingId, setRemovingId] = useState(null);
   const [editingSettings, setEditingSettings] = useState(false);
   const [activeId, setActiveId] = useState(null);
-  const total = trip.monuments.length;
+  const total = trip.monuments.length + (trip.custom_points?.length || 0);
+  const monumentsTotal = trip.monuments.length;
   const visited = trip.monuments.filter(m => m.is_visited).length;
-  const progressPct = total > 0 ? (visited / total) * 100 : 0;
-  const computedStatus = visited === 0 ? 'planned' : visited === total ? 'completed' : 'ongoing';
+  const progressPct = monumentsTotal > 0 ? (visited / monumentsTotal) * 100 : 0;
+  const computedStatus = visited === 0 ? 'planned' : visited === monumentsTotal ? 'completed' : 'ongoing';
   const meta = STATUS_META[computedStatus];
   const dayCount = trip.day_count || 1;
 
   const [groups, setGroups] = useState(() => buildGroups(trip));
-  const monumentsSignature = useMemo(
-    () => trip.monuments.map(m => `${m.monument_id}:${m.order}:${m.day}:${m.is_visited}`).join('|'),
-    [trip.monuments]
+  const itemsSignature = useMemo(
+    () => [
+      ...trip.monuments.map(m => `m${m.monument_id}:${m.order}:${m.day}:${m.is_visited}:${m.icon}:${m.color}`),
+      ...(trip.custom_points || []).map(p => `c${p.custom_point_id}:${p.order}:${p.day}:${p.is_visited}:${p.icon}:${p.color}`),
+    ].join('|'),
+    [trip.monuments, trip.custom_points]
   );
   useEffect(() => {
     setGroups(buildGroups(trip));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [trip.use_days, trip.day_count, monumentsSignature]);
+  }, [trip.use_days, trip.day_count, itemsSignature]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { delay: 250, tolerance: 6 } }),
@@ -270,10 +369,10 @@ function TripCard({ trip, onRemoveMonument, onDeleteTrip, onToggleVisited, justT
 
       const activeItems = prev[activeContainer];
       const overItems = prev[overContainer];
-      const activeIndex = activeItems.findIndex(m => m.monument_id === active.id);
+      const activeIndex = activeItems.findIndex(it => it.itemId === active.id);
       if (activeIndex === -1) return prev;
       const movingItem = activeItems[activeIndex];
-      const overIndex = overItems.findIndex(m => m.monument_id === over.id);
+      const overIndex = overItems.findIndex(it => it.itemId === over.id);
       const newIndex = overIndex >= 0 ? overIndex : overItems.length;
 
       return {
@@ -295,26 +394,26 @@ function TripCard({ trip, onRemoveMonument, onDeleteTrip, onToggleVisited, justT
       let next = prev;
       if (activeContainer && overContainer && activeContainer === overContainer) {
         const items = prev[activeContainer];
-        const oldIndex = items.findIndex(m => m.monument_id === active.id);
-        const newIndex = items.findIndex(m => m.monument_id === over.id);
+        const oldIndex = items.findIndex(it => it.itemId === active.id);
+        const newIndex = items.findIndex(it => it.itemId === over.id);
         if (oldIndex !== -1 && newIndex !== -1 && oldIndex !== newIndex) {
           next = { ...prev, [activeContainer]: arrayMove(items, oldIndex, newIndex) };
         }
       }
       const flat = flattenGroups(next, trip.use_days, dayCount);
-      onReorderMonuments(trip.id, flat);
+      onReorderItems(trip.id, flat);
       onPersistOrder(trip.id, flat);
       return next;
     });
   }
 
   const activeItem = activeId != null
-    ? Object.values(groups).flat().find(m => m.monument_id === activeId)
+    ? Object.values(groups).flat().find(it => it.itemId === activeId)
     : null;
 
-  async function handleRemoveMonument(monumentId) {
-    setRemovingId(monumentId);
-    await onRemoveMonument(trip.id, monumentId);
+  async function handleRemoveItem(item) {
+    setRemovingId(item.itemId);
+    await onRemoveItem(trip.id, item);
     setRemovingId(null);
   }
 
@@ -323,11 +422,26 @@ function TripCard({ trip, onRemoveMonument, onDeleteTrip, onToggleVisited, justT
     await onDeleteTrip(trip.id);
   }
 
+  function handleViewDetail(item) {
+    navigate('/monument', {
+      state: {
+        monument: {
+          id: item.monument_id,
+          name: item.name,
+          city: item.city,
+          latitude: item.latitude,
+          longitude: item.longitude,
+          category: item.category,
+        },
+      },
+    });
+  }
+
   return (
     <div className={`trip-card ${open ? 'trip-card--open' : ''}`}>
       <button className="trip-pill" onClick={() => setOpen(o => !o)}>
         <span className="trip-pill-name">{trip.name}</span>
-        {total > 0 && (
+        {monumentsTotal > 0 && (
           <span className="trip-pill-progress">
             <span className="trip-pill-progress-fill" style={{ width: `${progressPct}%` }} />
           </span>
@@ -345,8 +459,8 @@ function TripCard({ trip, onRemoveMonument, onDeleteTrip, onToggleVisited, justT
         <span className="trip-badge" style={{ background: meta.color + '22', color: meta.color }}>
           {meta.label}
         </span>
-        <span className="trip-count">{total} monument{total !== 1 ? 's' : ''}</span>
-        {total > 0 && <span className="trip-progress-label">{visited}/{total} visités</span>}
+        <span className="trip-count">{total} élément{total !== 1 ? 's' : ''}</span>
+        {monumentsTotal > 0 && <span className="trip-progress-label">{visited}/{monumentsTotal} visités</span>}
       </div>
 
       {open && (
@@ -395,7 +509,7 @@ function TripCard({ trip, onRemoveMonument, onDeleteTrip, onToggleVisited, justT
           )}
 
           {total === 0 ? (
-            <p className="trip-empty">Aucun monument ajouté à ce trajet.</p>
+            <p className="trip-empty">Aucun élément ajouté à ce trajet.</p>
           ) : (
             <DndContext
               sensors={sensors}
@@ -413,9 +527,11 @@ function TripCard({ trip, onRemoveMonument, onDeleteTrip, onToggleVisited, justT
                       label={`Jour ${d}`}
                       items={groups[`day:${d}`] || []}
                       justToggled={justToggled}
-                      onToggleVisited={m => onToggleVisited(trip.id, m)}
-                      onRemove={handleRemoveMonument}
+                      onToggleVisited={it => onToggleVisited(trip.id, it)}
+                      onRemove={handleRemoveItem}
                       removingId={removingId}
+                      onUpdateIcon={(it, icon, color) => onUpdateItemIcon(trip.id, it, icon, color)}
+                      onViewDetail={handleViewDetail}
                     />
                   ))}
                   <DayGroup
@@ -423,9 +539,11 @@ function TripCard({ trip, onRemoveMonument, onDeleteTrip, onToggleVisited, justT
                     label="Non planifié"
                     items={groups['day:none'] || []}
                     justToggled={justToggled}
-                    onToggleVisited={m => onToggleVisited(trip.id, m)}
-                    onRemove={handleRemoveMonument}
+                    onToggleVisited={it => onToggleVisited(trip.id, it)}
+                    onRemove={handleRemoveItem}
                     removingId={removingId}
+                    onUpdateIcon={(it, icon, color) => onUpdateItemIcon(trip.id, it, icon, color)}
+                    onViewDetail={handleViewDetail}
                   />
                 </>
               ) : (
@@ -434,18 +552,26 @@ function TripCard({ trip, onRemoveMonument, onDeleteTrip, onToggleVisited, justT
                   label={null}
                   items={groups['day:flat'] || []}
                   justToggled={justToggled}
-                  onToggleVisited={m => onToggleVisited(trip.id, m)}
-                  onRemove={handleRemoveMonument}
+                  onToggleVisited={it => onToggleVisited(trip.id, it)}
+                  onRemove={handleRemoveItem}
                   removingId={removingId}
+                  onUpdateIcon={(it, icon, color) => onUpdateItemIcon(trip.id, it, icon, color)}
+                  onViewDetail={handleViewDetail}
                 />
               )}
               <DragOverlay>
                 {activeItem ? (
                   <div className="trip-monument-card trip-monument-card--dragging">
-                    <TripMonumentThumb monument={{ id: activeItem.monument_id, name: activeItem.name, latitude: activeItem.latitude, longitude: activeItem.longitude }} />
+                    {activeItem.kind === 'custom' ? (
+                      <TripCustomPointThumb icon={activeItem.icon} color={activeItem.color} />
+                    ) : (
+                      <TripMonumentThumb monument={{ id: activeItem.monument_id, name: activeItem.name, latitude: activeItem.latitude, longitude: activeItem.longitude }} />
+                    )}
                     <div className="trip-monument-info">
                       <span className="trip-monument-name">{activeItem.name}</span>
-                      {activeItem.city && <span className="trip-monument-city">{activeItem.city}</span>}
+                      {activeItem.kind === 'custom'
+                        ? <span className="trip-monument-city">Point personnalisé</span>
+                        : activeItem.city && <span className="trip-monument-city">{activeItem.city}</span>}
                     </div>
                   </div>
                 ) : null}
@@ -453,7 +579,7 @@ function TripCard({ trip, onRemoveMonument, onDeleteTrip, onToggleVisited, justT
             </DndContext>
           )}
 
-          {total > 0 && (
+          {monumentsTotal > 0 && (
             <button
               className="trip-map-btn"
               onClick={() => navigate('/map', { state: { trip } })}
@@ -466,8 +592,18 @@ function TripCard({ trip, onRemoveMonument, onDeleteTrip, onToggleVisited, justT
           )}
 
           <button
+            className="trip-addpoint-btn"
+            onClick={() => navigate('/map', { state: { presetTripId: trip.id, presetTripName: trip.name } })}
+          >
+            <svg viewBox="0 0 24 24" fill="currentColor" width="15" height="15">
+              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
+            </svg>
+            Ajouter un point personnalisé
+          </button>
+
+          <button
             className="trip-delete-btn"
-            onClick={handleDelete}
+            onClick={() => setConfirmingDeleteTrip(true)}
             disabled={deleting}
           >
             {deleting ? (
@@ -483,6 +619,15 @@ function TripCard({ trip, onRemoveMonument, onDeleteTrip, onToggleVisited, justT
           </button>
         </div>
       )}
+
+      <ConfirmDialog
+        open={confirmingDeleteTrip}
+        title={`Supprimer « ${trip.name} » ?`}
+        message="Cette action supprimera définitivement ce trajet ainsi que tous ses monuments et points personnalisés associés."
+        confirmLabel="Supprimer"
+        onConfirm={async () => { setConfirmingDeleteTrip(false); await handleDelete(); }}
+        onCancel={() => setConfirmingDeleteTrip(false)}
+      />
     </div>
   );
 }
@@ -530,6 +675,22 @@ export default function Travel() {
     fetchTrips();
   }
 
+  async function deleteCustomPoint(pointId) {
+    await fetch(`${API}/custom-points/${pointId}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    fetchTrips();
+  }
+
+  async function removeItem(tripId, item) {
+    if (item.kind === 'custom') {
+      await deleteCustomPoint(item.custom_point_id);
+    } else {
+      await removeMonument(tripId, item.monument_id);
+    }
+  }
+
   async function deleteTrip(tripId) {
     await fetch(`${API}/trips/${tripId}`, {
       method: 'DELETE',
@@ -538,20 +699,28 @@ export default function Travel() {
     fetchTrips();
   }
 
-  async function toggleVisited(tripId, monument) {
-    const nextVisited = !monument.is_visited;
+  async function toggleVisited(tripId, item) {
+    const nextVisited = !item.is_visited;
     setTrips(prev => prev.map(t => t.id !== tripId ? t : {
       ...t,
-      monuments: t.monuments.map(m => m.monument_id === monument.monument_id ? { ...m, is_visited: nextVisited } : m),
+      monuments: item.kind === 'monument'
+        ? t.monuments.map(m => m.monument_id === item.monument_id ? { ...m, is_visited: nextVisited } : m)
+        : t.monuments,
+      custom_points: item.kind === 'custom'
+        ? (t.custom_points || []).map(p => p.custom_point_id === item.custom_point_id ? { ...p, is_visited: nextVisited } : p)
+        : t.custom_points,
     }));
     if (nextVisited) {
-      setJustToggled(monument.monument_id);
+      setJustToggled(item.itemId);
       setTimeout(() => {
-        setJustToggled(id => id === monument.monument_id ? null : id);
+        setJustToggled(id => id === item.itemId ? null : id);
       }, 550);
     }
     try {
-      const r = await fetch(`${API}/trips/${tripId}/monuments/${monument.monument_id}`, {
+      const url = item.kind === 'monument'
+        ? `${API}/trips/${tripId}/monuments/${item.monument_id}`
+        : `${API}/custom-points/${item.custom_point_id}`;
+      const r = await fetch(url, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ is_visited: nextVisited }),
@@ -562,17 +731,52 @@ export default function Travel() {
     }
   }
 
-  function reorderMonumentsLocal(tripId, monuments) {
-    setTrips(prev => prev.map(t => t.id !== tripId ? t : { ...t, monuments }));
+  function reorderItemsLocal(tripId, items) {
+    setTrips(prev => prev.map(t => t.id !== tripId ? t : {
+      ...t,
+      monuments: items.filter(it => it.kind === 'monument'),
+      custom_points: items.filter(it => it.kind === 'custom'),
+    }));
   }
 
-  async function persistOrder(tripId, monuments) {
-    const items = monuments.map(m => ({ monument_id: m.monument_id, order: m.order, day: m.day ?? null }));
+  async function persistOrder(tripId, items) {
+    const payload = items.map(it => ({
+      kind: it.kind,
+      monument_id: it.kind === 'monument' ? it.monument_id : null,
+      custom_point_id: it.kind === 'custom' ? it.custom_point_id : null,
+      order: it.order,
+      day: it.day ?? null,
+    }));
     try {
       const r = await fetch(`${API}/trips/${tripId}/reorder`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ items }),
+        body: JSON.stringify({ items: payload }),
+      });
+      if (!r.ok) throw new Error();
+    } catch {
+      fetchTrips();
+    }
+  }
+
+  async function updateItemIcon(tripId, item, icon, color) {
+    setTrips(prev => prev.map(t => t.id !== tripId ? t : {
+      ...t,
+      monuments: item.kind === 'monument'
+        ? t.monuments.map(m => m.monument_id === item.monument_id ? { ...m, icon, color } : m)
+        : t.monuments,
+      custom_points: item.kind === 'custom'
+        ? (t.custom_points || []).map(p => p.custom_point_id === item.custom_point_id ? { ...p, icon, color } : p)
+        : t.custom_points,
+    }));
+    try {
+      const url = item.kind === 'monument'
+        ? `${API}/trips/${tripId}/monuments/${item.monument_id}`
+        : `${API}/custom-points/${item.custom_point_id}`;
+      const r = await fetch(url, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ icon, color }),
       });
       if (!r.ok) throw new Error();
     } catch {
@@ -659,13 +863,14 @@ export default function Travel() {
             <TripCard
               key={trip.id}
               trip={trip}
-              onRemoveMonument={removeMonument}
+              onRemoveItem={removeItem}
               onDeleteTrip={deleteTrip}
               onToggleVisited={toggleVisited}
               justToggled={justToggled}
-              onReorderMonuments={reorderMonumentsLocal}
+              onReorderItems={reorderItemsLocal}
               onPersistOrder={persistOrder}
               onUpdateSettings={updateTripSettings}
+              onUpdateItemIcon={updateItemIcon}
             />
           ))}
         </div>

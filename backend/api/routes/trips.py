@@ -35,7 +35,14 @@ class TripMonumentAdd(BaseModel):
 
 
 class TripMonumentUpdate(BaseModel):
-    is_visited: bool
+    is_visited: Optional[bool] = None
+    icon: Optional[str] = None
+    color: Optional[str] = None
+    is_hidden: Optional[bool] = None
+
+
+class TripMonumentMove(BaseModel):
+    target_trip_id: int
 
 
 class TripSettingsUpdate(BaseModel):
@@ -44,7 +51,9 @@ class TripSettingsUpdate(BaseModel):
 
 
 class ReorderItem(BaseModel):
-    monument_id: int
+    kind: str = "monument"  # "monument" | "custom"
+    monument_id: Optional[int] = None
+    custom_point_id: Optional[int] = None
     order: int
     day: Optional[int] = None
 
@@ -89,12 +98,97 @@ def get_user_trips(user_id: int, db: Session = Depends(get_db)):
                     "is_visited": tm.is_visited,
                     "order": tm.order,
                     "day": tm.day,
+                    "icon": tm.icon,
+                    "color": tm.color,
+                    "is_hidden": tm.is_hidden,
                 }
                 for tm in sorted(t.trip_monuments, key=lambda x: x.order)
+            ],
+            "custom_points": [
+                {
+                    "custom_point_id": p.id,
+                    "name": p.name,
+                    "latitude": p.latitude,
+                    "longitude": p.longitude,
+                    "is_visited": p.is_visited,
+                    "order": p.order,
+                    "day": p.day,
+                    "icon": p.icon,
+                    "color": p.color,
+                    "is_hidden": p.is_hidden,
+                }
+                for p in sorted(t.custom_points, key=lambda x: x.order)
             ],
         }
         for t in trips
     ]
+
+
+# ── GET /trips/user/{user_id}/points ───────────────────────────────────────────
+# Vue combinée pour la carte : tous les points de l'utilisateur (monuments ajoutés
+# à un trajet + points personnalisés), qu'ils soient rattachés à un trajet ou non.
+@router.get("/user/{user_id}/points")
+def get_user_points(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    if user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Accès refusé")
+
+    tms = (
+        db.query(models.TripMonument)
+        .join(models.Trip)
+        .filter(models.Trip.user_id == user_id)
+        .all()
+    )
+    monument_points = [
+        {
+            "kind": "monument",
+            "trip_id": tm.trip_id,
+            "trip_name": tm.trip.name if tm.trip else None,
+            "monument_id": tm.monument_id,
+            "name": tm.monument.name if tm.monument else None,
+            "category": tm.monument.category if tm.monument else None,
+            "latitude": tm.monument.latitude if tm.monument else None,
+            "longitude": tm.monument.longitude if tm.monument else None,
+            "icon": tm.icon,
+            "color": tm.color,
+            "is_visited": tm.is_visited,
+            "is_hidden": tm.is_hidden,
+            "day": tm.day,
+            "order": tm.order,
+        }
+        for tm in tms
+        if tm.monument and tm.monument.latitude is not None and tm.monument.longitude is not None
+    ]
+
+    custom = (
+        db.query(models.CustomPoint)
+        .filter(models.CustomPoint.user_id == user_id)
+        .all()
+    )
+    custom_points = [
+        {
+            "kind": "custom",
+            "trip_id": p.trip_id,
+            "trip_name": p.trip.name if p.trip else None,
+            "custom_point_id": p.id,
+            "name": p.name,
+            "category": None,
+            "latitude": p.latitude,
+            "longitude": p.longitude,
+            "icon": p.icon,
+            "color": p.color,
+            "is_visited": p.is_visited,
+            "is_hidden": p.is_hidden,
+            "day": p.day,
+            "order": p.order,
+        }
+        for p in custom
+    ]
+
+    return monument_points + custom_points
 
 
 # ── POST /trips ────────────────────────────────────────────────────────────────
@@ -146,16 +240,98 @@ def add_monument_to_trip(trip_id: int, body: TripMonumentAdd, db: Session = Depe
 
 # ── PATCH /trips/{trip_id}/monuments/{monument_id} ────────────────────────────
 @router.patch("/{trip_id}/monuments/{monument_id}", status_code=200)
-def update_trip_monument(trip_id: int, monument_id: int, body: TripMonumentUpdate, db: Session = Depends(get_db)):
+def update_trip_monument(
+    trip_id: int,
+    monument_id: int,
+    body: TripMonumentUpdate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    trip = db.query(models.Trip).filter(models.Trip.id == trip_id).first()
+    if not trip:
+        raise HTTPException(status_code=404, detail="Trajet introuvable")
+    if trip.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Accès refusé")
+
     tm = db.query(models.TripMonument).filter(
         models.TripMonument.trip_id == trip_id,
         models.TripMonument.monument_id == monument_id,
     ).first()
     if not tm:
         raise HTTPException(status_code=404, detail="Monument non trouvé dans ce trajet")
-    tm.is_visited = body.is_visited
+
+    if body.is_visited is not None:
+        tm.is_visited = body.is_visited
+    if body.icon is not None:
+        tm.icon = body.icon
+    if body.color is not None:
+        tm.color = body.color
+    if body.is_hidden is not None:
+        tm.is_hidden = body.is_hidden
+
     db.commit()
-    return {"trip_id": trip_id, "monument_id": monument_id, "is_visited": tm.is_visited}
+    return {
+        "trip_id": trip_id, "monument_id": monument_id,
+        "is_visited": tm.is_visited, "icon": tm.icon, "color": tm.color, "is_hidden": tm.is_hidden,
+    }
+
+
+# ── PATCH /trips/{trip_id}/monuments/{monument_id}/move ───────────────────────
+# Réassigne un monument d'un trajet vers un autre (conserve icône/couleur/statut
+# visité, réinitialise l'ordre en fin de liste du trajet cible et le jour car la
+# numérotation des jours est propre à chaque trajet).
+@router.patch("/{trip_id}/monuments/{monument_id}/move", status_code=200)
+def move_monument_to_trip(
+    trip_id: int,
+    monument_id: int,
+    body: TripMonumentMove,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    trip = db.query(models.Trip).filter(models.Trip.id == trip_id).first()
+    if not trip:
+        raise HTTPException(status_code=404, detail="Trajet introuvable")
+    if trip.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Accès refusé")
+
+    target_trip = db.query(models.Trip).filter(models.Trip.id == body.target_trip_id).first()
+    if not target_trip:
+        raise HTTPException(status_code=404, detail="Trajet cible introuvable")
+    if target_trip.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Accès refusé")
+
+    tm = db.query(models.TripMonument).filter(
+        models.TripMonument.trip_id == trip_id,
+        models.TripMonument.monument_id == monument_id,
+    ).first()
+    if not tm:
+        raise HTTPException(status_code=404, detail="Monument non trouvé dans ce trajet")
+
+    if trip_id == body.target_trip_id:
+        return {"trip_id": trip_id, "monument_id": monument_id}
+
+    existing = db.query(models.TripMonument).filter(
+        models.TripMonument.trip_id == body.target_trip_id,
+        models.TripMonument.monument_id == monument_id,
+    ).first()
+    if existing:
+        raise HTTPException(status_code=409, detail="Monument déjà dans le trajet cible")
+
+    count = db.query(models.TripMonument).filter(models.TripMonument.trip_id == body.target_trip_id).count()
+    new_tm = models.TripMonument(
+        trip_id=body.target_trip_id,
+        monument_id=monument_id,
+        order=count,
+        day=None,
+        is_visited=tm.is_visited,
+        icon=tm.icon,
+        color=tm.color,
+        is_hidden=tm.is_hidden,
+    )
+    db.delete(tm)
+    db.add(new_tm)
+    db.commit()
+    return {"trip_id": body.target_trip_id, "monument_id": monument_id}
 
 
 # ── DELETE /trips/{trip_id}/monuments/{monument_id} ───────────────────────────
@@ -223,12 +399,23 @@ def reorder_trip_monuments(
         tm.monument_id: tm
         for tm in db.query(models.TripMonument).filter(models.TripMonument.trip_id == trip_id).all()
     }
+    points = {
+        p.id: p
+        for p in db.query(models.CustomPoint).filter(models.CustomPoint.trip_id == trip_id).all()
+    }
     for item in body.items:
-        tm = tms.get(item.monument_id)
-        if not tm:
-            continue
-        tm.order = item.order
-        tm.day = item.day
+        if item.kind == "custom":
+            point = points.get(item.custom_point_id)
+            if not point:
+                continue
+            point.order = item.order
+            point.day = item.day
+        else:
+            tm = tms.get(item.monument_id)
+            if not tm:
+                continue
+            tm.order = item.order
+            tm.day = item.day
     db.commit()
     return {"detail": "Ordre mis à jour"}
 
