@@ -294,6 +294,125 @@
   margin: 0.25rem 0 0.75rem;
 }
 
+/* ── Réglages du trajet (jours) ────────────────────────────────────────────── */
+
+.trip-settings-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 0.5rem;
+}
+
+.trip-settings-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.65rem;
+  background: none;
+  border: 1.5px solid #e5e3d6;
+  border-radius: 999px;
+  color: var(--travel-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.trip-settings-btn:hover { border-color: var(--travel-accent-dark); color: var(--travel-ink); }
+
+.trip-settings-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  background: var(--travel-cream);
+  border-radius: 12px;
+  padding: 0.75rem 0.9rem;
+  margin-bottom: 0.85rem;
+}
+
+.trip-settings-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--travel-ink);
+  cursor: pointer;
+}
+
+.trip-settings-toggle input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--travel-accent-dark);
+  cursor: pointer;
+}
+
+.trip-settings-daycount {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.82rem;
+  color: var(--travel-muted);
+}
+
+.trip-daycount-stepper {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.trip-daycount-stepper span {
+  min-width: 1.2rem;
+  text-align: center;
+  font-weight: 700;
+  color: var(--travel-ink);
+}
+
+.trip-daycount-stepper button {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: none;
+  background: #fff;
+  color: var(--travel-ink);
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgba(28, 28, 28, 0.12);
+}
+
+.trip-daycount-stepper button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ── Groupes de jour ────────────────────────────────────────────────────────── */
+
+.trip-day-group + .trip-day-group {
+  margin-top: 0.4rem;
+}
+
+.trip-day-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--travel-muted);
+  margin: 0.1rem 0 0.5rem;
+}
+
+.trip-day-empty {
+  border: 1.5px dashed #d8d6c4;
+  border-radius: 12px;
+  padding: 0.75rem;
+  margin-bottom: 0.85rem;
+  text-align: center;
+  font-size: 0.78rem;
+  color: #b8b6a4;
+}
+
+.trip-timeline--over .trip-day-empty {
+  border-color: var(--travel-accent-dark);
+  color: var(--travel-accent-dark);
+}
+
 /* ── Timeline ───────────────────────────────────────────────────────────────── */
 
 .trip-timeline {
@@ -390,10 +509,26 @@
   margin-bottom: 0.65rem;
   min-width: 0;
   transition: background 0.15s;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-touch-callout: none;
+  cursor: grab;
 }
 
 .trip-monument-card--visited {
   background: rgba(195, 214, 46, 0.18);
+}
+
+.trip-monument-card--dragging {
+  cursor: grabbing;
+  box-shadow: 0 8px 22px rgba(28, 28, 28, 0.22);
+  background: #fff;
+}
+
+.trip-drag-grip {
+  flex-shrink: 0;
+  color: #c8c6b6;
+  pointer-events: none;
 }
 
 .trip-thumb {

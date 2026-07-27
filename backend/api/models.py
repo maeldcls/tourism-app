@@ -119,6 +119,8 @@ class Trip(Base):
     start_date = Column(TIMESTAMP, nullable=True)
     end_date = Column(TIMESTAMP, nullable=True)
     status = Column(String(50), default="planned")
+    use_days = Column(Boolean, nullable=False, default=False)
+    day_count = Column(Integer, nullable=True)
     created_at = Column(TIMESTAMP, default=datetime.utcnow)
 
     user = relationship("User", back_populates="trips")
@@ -131,6 +133,7 @@ class TripMonument(Base):
     trip_id = Column(BigInteger, ForeignKey("trips.id"), primary_key=True)
     monument_id = Column(BigInteger, ForeignKey("monuments.id"), primary_key=True)
     order = Column(BigInteger, default=0)
+    day = Column(Integer, nullable=True)
     is_visited = Column(Boolean, default=False)
     added_at = Column(TIMESTAMP, default=datetime.utcnow)
 

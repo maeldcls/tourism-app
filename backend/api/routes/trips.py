@@ -38,6 +38,21 @@ class TripMonumentUpdate(BaseModel):
     is_visited: bool
 
 
+class TripSettingsUpdate(BaseModel):
+    use_days: Optional[bool] = None
+    day_count: Optional[int] = None
+
+
+class ReorderItem(BaseModel):
+    monument_id: int
+    order: int
+    day: Optional[int] = None
+
+
+class TripReorder(BaseModel):
+    items: list[ReorderItem]
+
+
 # ── GET /trips/user/{user_id} ──────────────────────────────────────────────────
 @router.get("/user/{user_id}")
 def get_user_trips(user_id: int, db: Session = Depends(get_db)):
@@ -61,6 +76,8 @@ def get_user_trips(user_id: int, db: Session = Depends(get_db)):
             "end_date": t.end_date,
             "status": t.status,
             "created_at": t.created_at,
+            "use_days": t.use_days,
+            "day_count": t.day_count,
             "monuments": [
                 {
                     "monument_id": tm.monument_id,
@@ -71,6 +88,7 @@ def get_user_trips(user_id: int, db: Session = Depends(get_db)):
                     "category": tm.monument.category if tm.monument else None,
                     "is_visited": tm.is_visited,
                     "order": tm.order,
+                    "day": tm.day,
                 }
                 for tm in sorted(t.trip_monuments, key=lambda x: x.order)
             ],
@@ -163,6 +181,56 @@ def delete_trip(trip_id: int, db: Session = Depends(get_db)):
     db.delete(trip)
     db.commit()
     return {"detail": "Trajet supprimé"}
+
+
+# ── PATCH /trips/{trip_id} ─────────────────────────────────────────────────────
+@router.patch("/{trip_id}", status_code=200)
+def update_trip_settings(
+    trip_id: int,
+    body: TripSettingsUpdate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    trip = db.query(models.Trip).filter(models.Trip.id == trip_id).first()
+    if not trip:
+        raise HTTPException(status_code=404, detail="Trajet introuvable")
+    if trip.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Accès refusé")
+
+    if body.use_days is not None:
+        trip.use_days = body.use_days
+    if body.day_count is not None:
+        trip.day_count = body.day_count
+    db.commit()
+    return {"id": trip.id, "use_days": trip.use_days, "day_count": trip.day_count}
+
+
+# ── PATCH /trips/{trip_id}/reorder ─────────────────────────────────────────────
+@router.patch("/{trip_id}/reorder", status_code=200)
+def reorder_trip_monuments(
+    trip_id: int,
+    body: TripReorder,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    trip = db.query(models.Trip).filter(models.Trip.id == trip_id).first()
+    if not trip:
+        raise HTTPException(status_code=404, detail="Trajet introuvable")
+    if trip.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Accès refusé")
+
+    tms = {
+        tm.monument_id: tm
+        for tm in db.query(models.TripMonument).filter(models.TripMonument.trip_id == trip_id).all()
+    }
+    for item in body.items:
+        tm = tms.get(item.monument_id)
+        if not tm:
+            continue
+        tm.order = item.order
+        tm.day = item.day
+    db.commit()
+    return {"detail": "Ordre mis à jour"}
 
 
 # ── GET /trips/{trip_id}/route ─────────────────────────────────────────────────
