@@ -509,7 +509,7 @@
   margin-bottom: 0.65rem;
   min-width: 0;
   transition: background 0.15s;
-  touch-action: manipulation;
+  touch-action: none;
   user-select: none;
   -webkit-touch-callout: none;
   cursor: grab;
