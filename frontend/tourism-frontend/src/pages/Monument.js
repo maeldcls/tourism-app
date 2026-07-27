@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import '../css/Monument.css';
 import ImageLightbox from '../components/ImageLightbox';
 import AddToTripDialog from '../components/AddToTripDialog';
+import AddPhotoDialog from '../components/AddPhotoDialog';
 import CommentsSection from '../components/CommentsSection';
 import RatingWidget from '../components/RatingWidget';
 import MonumentTags from '../components/MonumentTags';
@@ -18,6 +19,7 @@ export default function Monument() {
   const [activeImg, setActiveImg]         = useState(0);
   const [lightboxIndex, setLightboxIndex] = useState(null);
   const [showTripDialog, setShowTripDialog] = useState(false);
+  const [showPhotoDialog, setShowPhotoDialog] = useState(false);
   const [visited, setVisited]             = useState(false);
 
   // Si on vient du sheet, les images sont déjà résolues et passées en state
@@ -78,6 +80,12 @@ export default function Monument() {
           <button className="monu-back" onClick={() => navigate(-1)} aria-label="Retour">
             <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
               <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" />
+            </svg>
+          </button>
+
+          <button className="monu-add-photo" onClick={() => setShowPhotoDialog(true)} aria-label="Proposer une photo">
+            <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
+              <path d="M9 2l-1.83 2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2h-3.17L15 2H9zm3 15c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z" />
             </svg>
           </button>
 
@@ -269,6 +277,13 @@ export default function Monument() {
         <AddToTripDialog
           monument={monument}
           onClose={() => setShowTripDialog(false)}
+        />
+      )}
+
+      {showPhotoDialog && (
+        <AddPhotoDialog
+          monument={monument}
+          onClose={() => setShowPhotoDialog(false)}
         />
       )}
     </>

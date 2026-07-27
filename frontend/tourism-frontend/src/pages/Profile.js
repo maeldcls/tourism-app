@@ -66,6 +66,9 @@ export default function Profile() {
             <button className="profile-admin-btn" onClick={() => navigate('/admin/tags')}>
               Gestion des tags
             </button>
+            <button className="profile-admin-btn" onClick={() => navigate('/admin/photos')}>
+              Modération des photos
+            </button>
           </>
         )}
 

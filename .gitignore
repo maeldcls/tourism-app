@@ -6,6 +6,9 @@ __pycache__/
 *.pyc
 *.pyo
 
+# Photos uploadées par les users en local (hors Docker)
+backend/api/uploads/
+
 # Node
 frontend/tourism-frontend/node_modules/
 

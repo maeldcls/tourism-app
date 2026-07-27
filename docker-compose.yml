@@ -20,6 +20,8 @@ services:
     ports:
       - "8000:8000"
     env_file: .env
+    volumes:
+      - uploads_data:/app/uploads
     depends_on:
       db:
         condition: service_healthy
@@ -42,3 +44,4 @@ services:
 
 volumes:
   postgres_data:
+  uploads_data:

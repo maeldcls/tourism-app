@@ -11,7 +11,8 @@ async function fetchDbImages(monumentId) {
     const r = await fetch(`${DB_API}/monuments/${monumentId}`);
     if (!r.ok) return [];
     const data = await r.json();
-    return data.images || [];
+    // Les photos uploadées sont servies par l'API elle-même en chemin relatif (/uploads/...)
+    return (data.images || []).map(url => (url.startsWith('/') ? `${DB_API}${url}` : url));
   } catch { return []; }
 }
 

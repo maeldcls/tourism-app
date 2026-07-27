@@ -105,8 +105,15 @@ class MonumentImage(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     monument_id = Column(BigInteger, ForeignKey("monuments.id"), nullable=False)
     image_url = Column(Text, nullable=False)
+    source = Column(String(20), nullable=False, default="api")  # api | user
+    status = Column(String(20), nullable=False, default="approved")  # approved | pending | rejected
+    submitted_by = Column(BigInteger, ForeignKey("users.id"), nullable=True)
+    moderated_by = Column(BigInteger, ForeignKey("users.id"), nullable=True)
+    moderated_at = Column(TIMESTAMP, nullable=True)
+    created_at = Column(TIMESTAMP, default=datetime.utcnow)
 
     monument = relationship("Monument", back_populates="images")
+    submitter = relationship("User", foreign_keys=[submitted_by])
 
 
 class Trip(Base):

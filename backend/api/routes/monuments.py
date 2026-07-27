@@ -206,7 +206,7 @@ def _monument_to_dict(m: models.Monument, include_images: bool = False) -> dict:
         "longitude": m.longitude,
     }
     if include_images:
-        d["images"] = [img.image_url for img in m.images]
+        d["images"] = [img.image_url for img in m.images if img.status == "approved"]
     return d
 
 
