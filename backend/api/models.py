@@ -16,6 +16,9 @@ class User(Base):
     level = Column(BigInteger, default=1)
     taste_profile = Column(Text, nullable=True)
     is_admin = Column(Boolean, nullable=False, default=False)
+    avatar_url = Column(Text, nullable=True)
+    is_public = Column(Boolean, nullable=False, default=True)
+    friend_code = Column(String(12), nullable=False, unique=True, index=True)
     created_at = Column(TIMESTAMP, default=datetime.utcnow)
 
     visits = relationship("Visit", back_populates="user")
@@ -26,6 +29,15 @@ class User(Base):
     ratings = relationship("Rating", back_populates="user")
     monument_tags = relationship("MonumentTag", back_populates="user")
     custom_points = relationship("CustomPoint", back_populates="user", cascade="all, delete-orphan")
+    sent_friend_requests = relationship(
+        "Friendship", back_populates="requester", foreign_keys="Friendship.requester_id", cascade="all, delete-orphan"
+    )
+    received_friend_requests = relationship(
+        "Friendship", back_populates="addressee", foreign_keys="Friendship.addressee_id", cascade="all, delete-orphan"
+    )
+    trip_collaborations = relationship(
+        "TripCollaborator", back_populates="user", foreign_keys="TripCollaborator.user_id", cascade="all, delete-orphan"
+    )
 
 
 class Monument(Base):
@@ -134,6 +146,7 @@ class Trip(Base):
     user = relationship("User", back_populates="trips")
     trip_monuments = relationship("TripMonument", back_populates="trip", cascade="all, delete-orphan")
     custom_points = relationship("CustomPoint", back_populates="trip")
+    collaborators = relationship("TripCollaborator", back_populates="trip", cascade="all, delete-orphan")
 
 
 class TripMonument(Base):
@@ -247,3 +260,42 @@ class MonumentTag(Base):
     monument = relationship("Monument", back_populates="monument_tags")
     tag = relationship("Tag", back_populates="monument_tags")
     user = relationship("User", back_populates="monument_tags")
+
+
+class Friendship(Base):
+    """Relation d'amitié entre deux utilisateurs, nécessite acceptation.
+    requester_id = celui qui a envoyé la demande, addressee_id = celui qui la reçoit."""
+    __tablename__ = "friendships"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    requester_id = Column(BigInteger, ForeignKey("users.id"), nullable=False)
+    addressee_id = Column(BigInteger, ForeignKey("users.id"), nullable=False)
+    # pending | accepted | declined
+    status = Column(String(20), nullable=False, default="pending")
+    created_at = Column(TIMESTAMP, default=datetime.utcnow)
+    responded_at = Column(TIMESTAMP, nullable=True)
+
+    requester = relationship("User", back_populates="sent_friend_requests", foreign_keys=[requester_id])
+    addressee = relationship("User", back_populates="received_friend_requests", foreign_keys=[addressee_id])
+
+    __table_args__ = (UniqueConstraint("requester_id", "addressee_id", name="uq_friendship_pair"),)
+
+
+class TripCollaborator(Base):
+    """Accès partagé à un trajet (en plus du host = Trip.user_id)."""
+    __tablename__ = "trip_collaborators"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    trip_id = Column(BigInteger, ForeignKey("trips.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(BigInteger, ForeignKey("users.id"), nullable=False)
+    # read | write
+    role = Column(String(20), nullable=False, default="read")
+    invited_by = Column(BigInteger, ForeignKey("users.id"), nullable=False)
+    # pending | accepted
+    status = Column(String(20), nullable=False, default="pending")
+    created_at = Column(TIMESTAMP, default=datetime.utcnow)
+
+    trip = relationship("Trip", back_populates="collaborators")
+    user = relationship("User", back_populates="trip_collaborations", foreign_keys=[user_id])
+
+    __table_args__ = (UniqueConstraint("trip_id", "user_id", name="uq_trip_collaborator"),)

@@ -275,6 +275,15 @@
   font-weight: 600;
 }
 
+.trip-role-badge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #1565c0;
+  background: #e3f2fd;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+}
+
 /* ── Trip body ──────────────────────────────────────────────────────────────── */
 
 .trip-body {
@@ -292,6 +301,51 @@
   font-size: 0.88rem;
   color: var(--travel-muted);
   margin: 0.25rem 0 0.75rem;
+}
+
+/* ── Liste des membres (avatars + username) ────────────────────────────────── */
+
+.trip-members-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.7rem;
+}
+
+.trip-member-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.55rem 0.2rem 0.2rem;
+  background: var(--travel-cream);
+  border-radius: 999px;
+}
+
+.trip-member-avatar {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #43a047, #1e88e5);
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.65rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.trip-member-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+.trip-member-name {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--travel-ink);
+  max-width: 110px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* ── Réglages du trajet (jours) ────────────────────────────────────────────── */
@@ -318,6 +372,55 @@
 }
 
 .trip-settings-btn:hover { border-color: var(--travel-accent-dark); color: var(--travel-ink); }
+
+.trip-settings-members {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid #e5e3d6;
+}
+
+.trip-settings-members-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--travel-muted);
+}
+
+.trip-settings-members-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.trip-settings-member-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.trip-settings-member-row .trip-member-name { flex: 1; max-width: none; }
+
+.trip-member-remove-btn {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: none;
+  background: #fbeeed;
+  color: #c0413c;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.trip-member-remove-btn:disabled { opacity: 0.6; cursor: default; }
 
 .trip-settings-panel {
   display: flex;
@@ -488,6 +591,11 @@
 
 .trip-node:hover {
   border-color: var(--travel-accent-dark);
+}
+
+.trip-node:disabled {
+  cursor: default;
+  opacity: 0.55;
 }
 
 .trip-node--done {
@@ -701,6 +809,27 @@
 }
 
 .trip-delete-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.trip-leave-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.75rem;
+  background: none;
+  border: 1.5px solid #e9c2c0;
+  border-radius: 8px;
+  color: #c0413c;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.trip-leave-btn:hover:not(:disabled) {
+  background: #fbeeed;
+  border-color: #c0413c;
+}
+
+.trip-leave-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
 /* ── Spinners ───────────────────────────────────────────────────────────────── */
 

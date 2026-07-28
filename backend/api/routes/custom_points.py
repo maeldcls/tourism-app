@@ -13,6 +13,7 @@ from typing import Optional
 
 from database import get_db
 from deps import get_current_user
+from trip_utils import require_trip_role
 import models
 
 router = APIRouter(prefix="/custom-points", tags=["Points personnalisés"])
@@ -67,8 +68,7 @@ def create_custom_point(
         trip = db.query(models.Trip).filter(models.Trip.id == body.trip_id).first()
         if not trip:
             raise HTTPException(status_code=404, detail="Trajet introuvable")
-        if trip.user_id != current_user.id:
-            raise HTTPException(status_code=403, detail="Accès refusé")
+        require_trip_role(db, trip, current_user, "write")
         count = db.query(models.CustomPoint).filter(models.CustomPoint.trip_id == body.trip_id).count()
     else:
         count = 0
@@ -118,7 +118,11 @@ def update_custom_point(
     point = db.query(models.CustomPoint).filter(models.CustomPoint.id == point_id).first()
     if not point:
         raise HTTPException(status_code=404, detail="Point introuvable")
-    if point.user_id != current_user.id:
+
+    if point.trip_id is not None:
+        current_trip = db.query(models.Trip).filter(models.Trip.id == point.trip_id).first()
+        require_trip_role(db, current_trip, current_user, "write")
+    elif point.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Accès refusé")
 
     if body.name is not None:
@@ -134,8 +138,7 @@ def update_custom_point(
         trip = db.query(models.Trip).filter(models.Trip.id == body.trip_id).first()
         if not trip:
             raise HTTPException(status_code=404, detail="Trajet introuvable")
-        if trip.user_id != current_user.id:
-            raise HTTPException(status_code=403, detail="Accès refusé")
+        require_trip_role(db, trip, current_user, "write")
         point.trip_id = body.trip_id
     if body.order is not None:
         point.order = body.order
@@ -161,8 +164,13 @@ def delete_custom_point(
     point = db.query(models.CustomPoint).filter(models.CustomPoint.id == point_id).first()
     if not point:
         raise HTTPException(status_code=404, detail="Point introuvable")
-    if point.user_id != current_user.id:
+
+    if point.trip_id is not None:
+        trip = db.query(models.Trip).filter(models.Trip.id == point.trip_id).first()
+        require_trip_role(db, trip, current_user, "write")
+    elif point.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Accès refusé")
+
     db.delete(point)
     db.commit()
     return {"detail": "Point supprimé"}

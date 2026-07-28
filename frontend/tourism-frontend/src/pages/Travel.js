@@ -6,6 +6,7 @@ import '../css/Travel.css';
 import { useMonumentImages } from '../hooks/useMonumentImages';
 import MonumentIconEditor from '../components/MonumentIconEditor';
 import ConfirmDialog from '../components/ConfirmDialog';
+import ShareTripSheet from '../components/ShareTripSheet';
 import { ICON_LIBRARY } from '../utils/pointIcons';
 import {
   DndContext, DragOverlay, PointerSensor, KeyboardSensor,
@@ -149,8 +150,8 @@ function TripCustomPointThumb({ icon, color }) {
   );
 }
 
-function SortableTimelineItem({ item, lineProps, onToggleVisited, onRemove, removingId, onUpdateIcon, onViewDetail }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.itemId });
+function SortableTimelineItem({ item, lineProps, onToggleVisited, onRemove, removingId, onUpdateIcon, onViewDetail, canEdit }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.itemId, disabled: !canEdit });
   const [editingIcon, setEditingIcon] = useState(false);
   const [confirmingRemove, setConfirmingRemove] = useState(false);
   const style = {
@@ -182,6 +183,7 @@ function SortableTimelineItem({ item, lineProps, onToggleVisited, onRemove, remo
         <button
           className={`trip-node${item.is_visited ? ' trip-node--done' : ''}`}
           onClick={onToggleVisited}
+          disabled={!canEdit}
           aria-label={item.is_visited ? `Marquer ${item.name} comme non visité` : `Marquer ${item.name} comme visité`}
         >
           {item.is_visited && (
@@ -204,8 +206,8 @@ function SortableTimelineItem({ item, lineProps, onToggleVisited, onRemove, remo
 
       <div
         className={`trip-monument-card${item.is_visited ? ' trip-monument-card--visited' : ''}`}
-        {...attributes}
-        {...listeners}
+        {...(canEdit ? attributes : {})}
+        {...(canEdit ? listeners : {})}
       >
         {isCustom ? (
           <TripCustomPointThumb icon={item.icon} color={item.color} />
@@ -232,35 +234,41 @@ function SortableTimelineItem({ item, lineProps, onToggleVisited, onRemove, remo
             </svg>
           </button>
         )}
-        <button
-          className="trip-action-btn"
-          onClick={() => setEditingIcon(true)}
-          aria-label={`Personnaliser l'icône de ${item.name}`}
-          title="Personnaliser l'icône"
-        >
-          <svg viewBox="0 0 24 24" fill="currentColor" width="15" height="15">
-            <path d="M12 3C7.03 3 2 6.13 2 11.5 2 15.09 4.13 17 6.5 17c.8 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.4-1.01-.25-.27-.4-.62-.4-1.01 0-.83.67-1.5 1.5-1.5H11c3.31 0 6-2.69 6-6 0-1.71-.72-3-2-3.5C15.87 3.34 14.5 3 12 3zm-5.5 8.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM9 8c-.83 0-1.5-.67-1.5-1.5S8.17 5 9 5s1.5.67 1.5 1.5S9.83 8 9 8zm4 0c-.83 0-1.5-.67-1.5-1.5S12.17 5 13 5s1.5.67 1.5 1.5S13.83 8 13 8zm3 3c-.83 0-1.5-.67-1.5-1.5S15.17 8 16 8s1.5.67 1.5 1.5S16.83 11 16 11z" />
-          </svg>
-        </button>
-        <svg className="trip-drag-grip" viewBox="0 0 24 24" fill="currentColor" width="14" height="14">
-          <circle cx="9" cy="6" r="1.4" /><circle cx="15" cy="6" r="1.4" />
-          <circle cx="9" cy="12" r="1.4" /><circle cx="15" cy="12" r="1.4" />
-          <circle cx="9" cy="18" r="1.4" /><circle cx="15" cy="18" r="1.4" />
-        </svg>
-        <button
-          className="trip-remove-btn"
-          onClick={() => setConfirmingRemove(true)}
-          disabled={removingId === item.itemId}
-          aria-label={isCustom ? `Supprimer ${item.name}` : `Retirer ${item.name}`}
-        >
-          {removingId === item.itemId ? (
-            <div className="trip-mini-spinner" />
-          ) : (
-            <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14">
-              <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
+        {canEdit && (
+          <button
+            className="trip-action-btn"
+            onClick={() => setEditingIcon(true)}
+            aria-label={`Personnaliser l'icône de ${item.name}`}
+            title="Personnaliser l'icône"
+          >
+            <svg viewBox="0 0 24 24" fill="currentColor" width="15" height="15">
+              <path d="M12 3C7.03 3 2 6.13 2 11.5 2 15.09 4.13 17 6.5 17c.8 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.4-1.01-.25-.27-.4-.62-.4-1.01 0-.83.67-1.5 1.5-1.5H11c3.31 0 6-2.69 6-6 0-1.71-.72-3-2-3.5C15.87 3.34 14.5 3 12 3zm-5.5 8.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM9 8c-.83 0-1.5-.67-1.5-1.5S8.17 5 9 5s1.5.67 1.5 1.5S9.83 8 9 8zm4 0c-.83 0-1.5-.67-1.5-1.5S12.17 5 13 5s1.5.67 1.5 1.5S13.83 8 13 8zm3 3c-.83 0-1.5-.67-1.5-1.5S15.17 8 16 8s1.5.67 1.5 1.5S16.83 11 16 11z" />
             </svg>
-          )}
-        </button>
+          </button>
+        )}
+        {canEdit && (
+          <svg className="trip-drag-grip" viewBox="0 0 24 24" fill="currentColor" width="14" height="14">
+            <circle cx="9" cy="6" r="1.4" /><circle cx="15" cy="6" r="1.4" />
+            <circle cx="9" cy="12" r="1.4" /><circle cx="15" cy="12" r="1.4" />
+            <circle cx="9" cy="18" r="1.4" /><circle cx="15" cy="18" r="1.4" />
+          </svg>
+        )}
+        {canEdit && (
+          <button
+            className="trip-remove-btn"
+            onClick={() => setConfirmingRemove(true)}
+            disabled={removingId === item.itemId}
+            aria-label={isCustom ? `Supprimer ${item.name}` : `Retirer ${item.name}`}
+          >
+            {removingId === item.itemId ? (
+              <div className="trip-mini-spinner" />
+            ) : (
+              <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14">
+                <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
+              </svg>
+            )}
+          </button>
+        )}
       </div>
 
       {editingIcon && (
@@ -287,7 +295,7 @@ function SortableTimelineItem({ item, lineProps, onToggleVisited, onRemove, remo
   );
 }
 
-function DayGroup({ id, label, items, justToggled, onToggleVisited, onRemove, removingId, onUpdateIcon, onViewDetail }) {
+function DayGroup({ id, label, items, justToggled, onToggleVisited, onRemove, removingId, onUpdateIcon, onViewDetail, canEdit }) {
   const { setNodeRef, isOver } = useDroppable({ id });
   return (
     <div className="trip-day-group">
@@ -313,6 +321,7 @@ function DayGroup({ id, label, items, justToggled, onToggleVisited, onRemove, re
               removingId={removingId}
               onUpdateIcon={(icon, color) => onUpdateIcon(it, icon, color)}
               onViewDetail={onViewDetail}
+              canEdit={canEdit}
             />
           ))}
         </div>
@@ -321,13 +330,21 @@ function DayGroup({ id, label, items, justToggled, onToggleVisited, onRemove, re
   );
 }
 
-function TripCard({ trip, onRemoveItem, onDeleteTrip, onToggleVisited, justToggled, onReorderItems, onPersistOrder, onUpdateSettings, onUpdateItemIcon }) {
+function TripCard({ trip, onRemoveItem, onDeleteTrip, onToggleVisited, justToggled, onReorderItems, onPersistOrder, onUpdateSettings, onUpdateItemIcon, onRemoveMember, onLeaveTrip }) {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [confirmingDeleteTrip, setConfirmingDeleteTrip] = useState(false);
   const [removingId, setRemovingId] = useState(null);
   const [editingSettings, setEditingSettings] = useState(false);
+  const [sharing, setSharing] = useState(false);
+  const [confirmRemoveMember, setConfirmRemoveMember] = useState(null);
+  const [removingMemberId, setRemovingMemberId] = useState(null);
+  const [confirmLeave, setConfirmLeave] = useState(false);
+  const [leaving, setLeaving] = useState(false);
+  const role = trip.role || 'host';
+  const isHost = role === 'host';
+  const canEdit = role !== 'read';
   const [activeId, setActiveId] = useState(null);
   const total = trip.monuments.length + (trip.custom_points?.length || 0);
   const monumentsTotal = trip.monuments.length;
@@ -422,6 +439,17 @@ function TripCard({ trip, onRemoveItem, onDeleteTrip, onToggleVisited, justToggl
     await onDeleteTrip(trip.id);
   }
 
+  async function handleRemoveMember(member) {
+    setRemovingMemberId(member.collaborator_id);
+    await onRemoveMember(trip.id, member.collaborator_id);
+    setRemovingMemberId(null);
+  }
+
+  async function handleLeave() {
+    setLeaving(true);
+    await onLeaveTrip(trip.id);
+  }
+
   function handleViewDetail(item) {
     navigate('/monument', {
       state: {
@@ -461,20 +489,48 @@ function TripCard({ trip, onRemoveItem, onDeleteTrip, onToggleVisited, justToggl
         </span>
         <span className="trip-count">{total} élément{total !== 1 ? 's' : ''}</span>
         {monumentsTotal > 0 && <span className="trip-progress-label">{visited}/{monumentsTotal} visités</span>}
+        {!isHost && (
+          <span className="trip-role-badge">
+            {trip.host ? `Partagé par ${trip.host.username}` : 'Partagé'} · {canEdit ? 'écriture' : 'lecture seule'}
+          </span>
+        )}
       </div>
 
       {open && (
         <div className="trip-body">
+          {trip.members && trip.members.length > 1 && (
+            <div className="trip-members-row">
+              {trip.members.map(m => (
+                <div className="trip-member-chip" key={m.collaborator_id ?? `host-${m.id}`} title={m.username}>
+                  <span className="trip-member-avatar">
+                    {m.avatar_url ? <img src={`${API}${m.avatar_url}`} alt="" /> : m.username[0]?.toUpperCase()}
+                  </span>
+                  <span className="trip-member-name">{m.username}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
           <div className="trip-settings-row">
-            <button className="trip-settings-btn" onClick={() => setEditingSettings(o => !o)}>
-              <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14">
-                <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.9959.9959 0 00-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" />
-              </svg>
-              Modifier
-            </button>
+            {canEdit && (
+              <button className="trip-settings-btn" onClick={() => setEditingSettings(o => !o)}>
+                <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14">
+                  <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.9959.9959 0 00-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" />
+                </svg>
+                Modifier
+              </button>
+            )}
+            {isHost && (
+              <button className="trip-settings-btn" onClick={() => setSharing(true)}>
+                <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14">
+                  <path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92 1.61 0 2.92-1.31 2.92-2.92s-1.31-2.91-2.92-2.91z" />
+                </svg>
+                Partager
+              </button>
+            )}
           </div>
 
-          {editingSettings && (
+          {editingSettings && canEdit && (
             <div className="trip-settings-panel">
               <label className="trip-settings-toggle">
                 <input
@@ -505,6 +561,35 @@ function TripCard({ trip, onRemoveItem, onDeleteTrip, onToggleVisited, justToggl
                   </div>
                 </div>
               )}
+              {isHost && trip.members && trip.members.filter(m => m.role !== 'host').length > 0 && (
+                <div className="trip-settings-members">
+                  <span className="trip-settings-members-label">Membres</span>
+                  <ul className="trip-settings-members-list">
+                    {trip.members.filter(m => m.role !== 'host').map(m => (
+                      <li key={m.collaborator_id} className="trip-settings-member-row">
+                        <span className="trip-member-avatar">
+                          {m.avatar_url ? <img src={`${API}${m.avatar_url}`} alt="" /> : m.username[0]?.toUpperCase()}
+                        </span>
+                        <span className="trip-member-name">{m.username}</span>
+                        <button
+                          className="trip-member-remove-btn"
+                          onClick={() => setConfirmRemoveMember(m)}
+                          disabled={removingMemberId === m.collaborator_id}
+                          aria-label={`Retirer ${m.username}`}
+                        >
+                          {removingMemberId === m.collaborator_id ? (
+                            <div className="trip-mini-spinner" />
+                          ) : (
+                            <svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13">
+                              <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
+                            </svg>
+                          )}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
           )}
 
@@ -532,6 +617,7 @@ function TripCard({ trip, onRemoveItem, onDeleteTrip, onToggleVisited, justToggl
                       removingId={removingId}
                       onUpdateIcon={(it, icon, color) => onUpdateItemIcon(trip.id, it, icon, color)}
                       onViewDetail={handleViewDetail}
+                      canEdit={canEdit}
                     />
                   ))}
                   <DayGroup
@@ -544,6 +630,7 @@ function TripCard({ trip, onRemoveItem, onDeleteTrip, onToggleVisited, justToggl
                     removingId={removingId}
                     onUpdateIcon={(it, icon, color) => onUpdateItemIcon(trip.id, it, icon, color)}
                     onViewDetail={handleViewDetail}
+                    canEdit={canEdit}
                   />
                 </>
               ) : (
@@ -557,6 +644,7 @@ function TripCard({ trip, onRemoveItem, onDeleteTrip, onToggleVisited, justToggl
                   removingId={removingId}
                   onUpdateIcon={(it, icon, color) => onUpdateItemIcon(trip.id, it, icon, color)}
                   onViewDetail={handleViewDetail}
+                  canEdit={canEdit}
                 />
               )}
               <DragOverlay>
@@ -591,34 +679,59 @@ function TripCard({ trip, onRemoveItem, onDeleteTrip, onToggleVisited, justToggl
             </button>
           )}
 
-          <button
-            className="trip-addpoint-btn"
-            onClick={() => navigate('/map', { state: { presetTripId: trip.id, presetTripName: trip.name } })}
-          >
-            <svg viewBox="0 0 24 24" fill="currentColor" width="15" height="15">
-              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
-            </svg>
-            Ajouter un point personnalisé
-          </button>
+          {canEdit && (
+            <button
+              className="trip-addpoint-btn"
+              onClick={() => navigate('/map', { state: { presetTripId: trip.id, presetTripName: trip.name } })}
+            >
+              <svg viewBox="0 0 24 24" fill="currentColor" width="15" height="15">
+                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
+              </svg>
+              Ajouter un point personnalisé
+            </button>
+          )}
 
-          <button
-            className="trip-delete-btn"
-            onClick={() => setConfirmingDeleteTrip(true)}
-            disabled={deleting}
-          >
-            {deleting ? (
-              <div className="trip-mini-spinner trip-mini-spinner--red" />
-            ) : (
-              <>
-                <svg viewBox="0 0 24 24" fill="currentColor" width="15" height="15">
-                  <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
-                </svg>
-                Supprimer ce trajet
-              </>
-            )}
-          </button>
+          {isHost && (
+            <button
+              className="trip-delete-btn"
+              onClick={() => setConfirmingDeleteTrip(true)}
+              disabled={deleting}
+            >
+              {deleting ? (
+                <div className="trip-mini-spinner trip-mini-spinner--red" />
+              ) : (
+                <>
+                  <svg viewBox="0 0 24 24" fill="currentColor" width="15" height="15">
+                    <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
+                  </svg>
+                  Supprimer ce trajet
+                </>
+              )}
+            </button>
+          )}
+
+          {!isHost && (
+            <button
+              className="trip-leave-btn"
+              onClick={() => setConfirmLeave(true)}
+              disabled={leaving}
+            >
+              {leaving ? (
+                <div className="trip-mini-spinner trip-mini-spinner--red" />
+              ) : (
+                <>
+                  <svg viewBox="0 0 24 24" fill="currentColor" width="15" height="15">
+                    <path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z" />
+                  </svg>
+                  Quitter ce trajet
+                </>
+              )}
+            </button>
+          )}
         </div>
       )}
+
+      {sharing && <ShareTripSheet trip={trip} onClose={() => setSharing(false)} />}
 
       <ConfirmDialog
         open={confirmingDeleteTrip}
@@ -627,6 +740,24 @@ function TripCard({ trip, onRemoveItem, onDeleteTrip, onToggleVisited, justToggl
         confirmLabel="Supprimer"
         onConfirm={async () => { setConfirmingDeleteTrip(false); await handleDelete(); }}
         onCancel={() => setConfirmingDeleteTrip(false)}
+      />
+
+      <ConfirmDialog
+        open={!!confirmRemoveMember}
+        title={confirmRemoveMember ? `Retirer ${confirmRemoveMember.username} ?` : ''}
+        message="Cette personne perdra l'accès à ce trajet."
+        confirmLabel="Retirer"
+        onConfirm={async () => { const m = confirmRemoveMember; setConfirmRemoveMember(null); await handleRemoveMember(m); }}
+        onCancel={() => setConfirmRemoveMember(null)}
+      />
+
+      <ConfirmDialog
+        open={confirmLeave}
+        title={`Quitter « ${trip.name} » ?`}
+        message="Vous perdrez l'accès à ce trajet. Le host pourra vous réinviter plus tard."
+        confirmLabel="Quitter"
+        onConfirm={async () => { setConfirmLeave(false); await handleLeave(); }}
+        onCancel={() => setConfirmLeave(false)}
       />
     </div>
   );
@@ -694,6 +825,22 @@ export default function Travel() {
   async function deleteTrip(tripId) {
     await fetch(`${API}/trips/${tripId}`, {
       method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    fetchTrips();
+  }
+
+  async function removeMember(tripId, collaboratorId) {
+    await fetch(`${API}/trips/${tripId}/collaborators/${collaboratorId}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    fetchTrips();
+  }
+
+  async function leaveTrip(tripId) {
+    await fetch(`${API}/trips/${tripId}/leave`, {
+      method: 'POST',
       headers: { Authorization: `Bearer ${token}` },
     });
     fetchTrips();
@@ -871,6 +1018,8 @@ export default function Travel() {
               onPersistOrder={persistOrder}
               onUpdateSettings={updateTripSettings}
               onUpdateItemIcon={updateItemIcon}
+              onRemoveMember={removeMember}
+              onLeaveTrip={leaveTrip}
             />
           ))}
         </div>

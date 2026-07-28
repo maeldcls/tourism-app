@@ -1,10 +1,22 @@
+import { useRef, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import NotificationBell from '../components/NotificationBell';
+import API_URL from '../config';
 import '../css/Profile.css';
 
+const API = API_URL;
+
 export default function Profile() {
-  const { user, logout } = useAuth();
+  const { user, token, logout, updateUser } = useAuth();
   const navigate = useNavigate();
+  const fileInputRef = useRef(null);
+
+  const [editingUsername, setEditingUsername] = useState(false);
+  const [usernameInput, setUsernameInput] = useState(user?.username ?? '');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
+  const [codeCopied, setCodeCopied] = useState(false);
 
   if (!user) return <Navigate to="/login" replace />;
 
@@ -22,13 +34,116 @@ export default function Profile() {
     navigate('/login');
   }
 
+  async function submitPatch(formData) {
+    setSaving(true);
+    setError(null);
+    try {
+      const r = await fetch(`${API}/profile/me`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(data.detail || 'Erreur lors de la mise à jour');
+      updateUser(data);
+      return true;
+    } catch (e) {
+      setError(e.message);
+      return false;
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleAvatarChange(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const formData = new FormData();
+    formData.append('avatar', file);
+    await submitPatch(formData);
+    e.target.value = '';
+  }
+
+  async function handleUsernameSave() {
+    const trimmed = usernameInput.trim();
+    if (!trimmed || trimmed === user.username) { setEditingUsername(false); return; }
+    const formData = new FormData();
+    formData.append('username', trimmed);
+    const ok = await submitPatch(formData);
+    if (ok) setEditingUsername(false);
+  }
+
+  async function handleTogglePublic() {
+    const formData = new FormData();
+    formData.append('is_public', String(!user.is_public));
+    await submitPatch(formData);
+  }
+
+  function handleCopyCode() {
+    navigator.clipboard?.writeText(user.friend_code).then(() => {
+      setCodeCopied(true);
+      setTimeout(() => setCodeCopied(false), 1500);
+    });
+  }
+
   return (
     <div className="profile-page">
       <div className="profile-card">
-        <div className="profile-avatar">{initials}</div>
+        <div className="profile-topbar">
+          <NotificationBell />
+        </div>
 
-        <h1 className="profile-username">{user.username}</h1>
+        <div className="profile-avatar-wrap">
+          <div className="profile-avatar">
+            {user.avatar_url ? <img src={`${API}${user.avatar_url}`} alt="" /> : initials}
+          </div>
+          <button
+            className="profile-avatar-edit-btn"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={saving}
+            aria-label="Changer la photo de profil"
+          >
+            <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14">
+              <path d="M12 20.94c1.5 0 2.75-1.25 2.75-2.75h-5.5c0 1.5 1.25 2.75 2.75 2.75zM19 12v-1.19c0-3.25-1.75-6.16-4.5-7.62V3c0-.83-.67-1.5-1.5-1.5S11.5 2.17 11.5 3v.19C8.75 4.65 7 7.55 7 10.81V12l-1.5 1.5V15h13v-1.5L19 12z" />
+            </svg>
+          </button>
+          <input
+            type="file"
+            ref={fileInputRef}
+            accept="image/jpeg,image/png,image/webp"
+            style={{ display: 'none' }}
+            onChange={handleAvatarChange}
+          />
+        </div>
+
+        {editingUsername ? (
+          <div className="profile-username-edit">
+            <input
+              className="profile-username-input"
+              value={usernameInput}
+              onChange={e => setUsernameInput(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleUsernameSave()}
+              autoFocus
+            />
+            <button className="profile-username-save" onClick={handleUsernameSave} disabled={saving}>OK</button>
+            <button
+              className="profile-username-cancel"
+              onClick={() => { setEditingUsername(false); setUsernameInput(user.username); }}
+            >
+              Annuler
+            </button>
+          </div>
+        ) : (
+          <h1 className="profile-username" onClick={() => setEditingUsername(true)}>
+            {user.username}
+            <svg className="profile-username-pencil" viewBox="0 0 24 24" fill="currentColor" width="14" height="14">
+              <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 000-1.41l-2.34-2.34a1 1 0 00-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" />
+            </svg>
+          </h1>
+        )}
         <p className="profile-email">{user.email}</p>
+
+        {error && <p className="profile-error">{error}</p>}
 
         <div className="profile-stats">
           <div className="profile-stat">
@@ -57,6 +172,41 @@ export default function Profile() {
           </div>
           <p className="xp-bar-pct">{levelProgress}%</p>
         </div>
+
+        <div className="profile-visibility">
+          <div className="profile-visibility-text">
+            <span className="profile-visibility-title">Profil {user.is_public ? 'public' : 'privé'}</span>
+            <span className="profile-visibility-desc">
+              {user.is_public
+                ? 'Tout le monde peut voir votre profil complet.'
+                : 'Seuls votre nom et votre photo sont visibles par les autres.'}
+            </span>
+          </div>
+          <button
+            className={`profile-toggle${user.is_public ? ' profile-toggle--on' : ''}`}
+            onClick={handleTogglePublic}
+            disabled={saving}
+            role="switch"
+            aria-checked={user.is_public}
+            aria-label="Basculer la visibilité du profil"
+          >
+            <span className="profile-toggle-knob" />
+          </button>
+        </div>
+
+        <div className="profile-friend-code">
+          <span className="profile-friend-code-label">Mon code ami</span>
+          <div className="profile-friend-code-row">
+            <span className="profile-friend-code-value">{user.friend_code}</span>
+            <button className="profile-friend-code-copy" onClick={handleCopyCode}>
+              {codeCopied ? 'Copié !' : 'Copier'}
+            </button>
+          </div>
+        </div>
+
+        <button className="profile-friends-btn" onClick={() => navigate('/friends')}>
+          Mes amis
+        </button>
 
         {user.is_admin && (
           <>

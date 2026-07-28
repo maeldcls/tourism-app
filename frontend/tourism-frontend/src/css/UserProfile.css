@@ -1,0 +1,170 @@
+.uprofile-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  background: linear-gradient(160deg, #e8f5e9 0%, #e3f2fd 60%, #fff8e1 100%);
+  padding: 2rem 1rem 5rem;
+}
+
+.uprofile-card {
+  position: relative;
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 6px 32px rgba(46, 125, 50, 0.10);
+  padding: 2.5rem 2rem;
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.uprofile-back {
+  position: absolute;
+  top: 1.2rem;
+  left: 1.2rem;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: #f1f8e9;
+  color: #2e7d32;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.uprofile-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #43a047, #1e88e5);
+  color: #fff;
+  font-size: 2rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 0.25rem;
+  box-shadow: 0 4px 16px rgba(67, 160, 71, 0.25);
+  overflow: hidden;
+}
+
+.uprofile-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.uprofile-username {
+  margin: 0;
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #1b5e20;
+}
+
+.uprofile-relation {
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.uprofile-relation--pending_outgoing,
+.uprofile-relation--pending_incoming {
+  background: #fff3e0;
+  color: #ef6c00;
+}
+
+.uprofile-add-btn {
+  padding: 0.5rem 1.1rem;
+  border-radius: 10px;
+  border: none;
+  background: #43a047;
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.88rem;
+  cursor: pointer;
+}
+
+.uprofile-add-btn:hover {
+  background: #2e7d32;
+}
+
+.uprofile-private-note {
+  margin-top: 0.5rem;
+  color: #90a4ae;
+  font-size: 0.88rem;
+}
+
+.uprofile-stats {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  background: #f1f8e9;
+  border-radius: 14px;
+  padding: 1rem 1.5rem;
+  width: 100%;
+  justify-content: space-around;
+  margin-top: 1rem;
+}
+
+.uprofile-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.uprofile-stat-value {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #2e7d32;
+}
+
+.uprofile-stat-label {
+  font-size: 0.7rem;
+  color: #78909c;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.uprofile-stat-divider {
+  width: 1px;
+  height: 32px;
+  background: #c8e6c9;
+}
+
+.uprofile-badges {
+  width: 100%;
+  margin-top: 1rem;
+}
+
+.uprofile-badges-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #689f38;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.5rem;
+}
+
+.uprofile-badges-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.uprofile-badge {
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.3rem 0.6rem;
+  border-radius: 999px;
+  background: #e3f2fd;
+  color: #1565c0;
+}

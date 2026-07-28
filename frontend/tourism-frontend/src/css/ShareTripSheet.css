@@ -1,0 +1,225 @@
+.shts-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(3px);
+  z-index: 100;
+}
+
+.shts-sheet {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #fff;
+  border-radius: 20px 20px 0 0;
+  z-index: 101;
+  padding: 1.25rem 1.25rem 2rem;
+  box-shadow: 0 -8px 40px rgba(15, 23, 42, 0.18);
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.shts-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.shts-header h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #1b5e20;
+}
+
+.shts-close {
+  background: #f1f5f9;
+  border: none;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #64748b;
+  flex-shrink: 0;
+}
+
+.shts-close svg { width: 16px; height: 16px; }
+
+.shts-error {
+  background: #fee2e2;
+  color: #c62828;
+  padding: 0.55rem 0.8rem;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  margin-bottom: 0.75rem;
+}
+
+.shts-loading {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #94a3b8;
+  font-size: 0.9rem;
+  padding: 0.5rem 0;
+}
+
+.shts-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #e2e8f0;
+  border-top-color: #43a047;
+  border-radius: 50%;
+  animation: shts-spin 0.7s linear infinite;
+}
+
+@keyframes shts-spin { to { transform: rotate(360deg); } }
+
+.shts-section-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #689f38;
+  margin: 1rem 0 0.5rem;
+}
+
+.shts-section-label:first-of-type { margin-top: 0; }
+
+.shts-empty {
+  font-size: 0.85rem;
+  color: #90a4ae;
+  margin: 0;
+}
+
+.shts-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.shts-member {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0.6rem;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+  background: #f8fafc;
+}
+
+.shts-member-avatar {
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #43a047, #1e88e5);
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.shts-member-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+.shts-member-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.shts-member-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #37474f;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.shts-member-pending {
+  font-size: 0.7rem;
+  color: #ef6c00;
+}
+
+.shts-role-select {
+  flex-shrink: 0;
+  padding: 0.3rem 0.4rem;
+  border-radius: 8px;
+  border: 1.5px solid #c8e6c9;
+  font-size: 0.78rem;
+  color: #37474f;
+  background: #fff;
+}
+
+.shts-remove-btn {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: none;
+  background: #ffebee;
+  color: #c62828;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.shts-remove-btn:disabled { opacity: 0.6; cursor: default; }
+
+.shts-invite-btn {
+  flex-shrink: 0;
+  padding: 0.4rem 0.8rem;
+  border-radius: 8px;
+  border: none;
+  background: #43a047;
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.8rem;
+  cursor: pointer;
+  min-width: 68px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.shts-invite-btn:hover:not(:disabled) { background: #2e7d32; }
+.shts-invite-btn:disabled { opacity: 0.6; cursor: default; }
+
+.shts-search-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.55rem 0.7rem;
+  border-radius: 10px;
+  border: 1.5px solid #c8e6c9;
+  font-size: 0.85rem;
+  color: #37474f;
+  background: #fff;
+  margin-bottom: 0.6rem;
+}
+
+.shts-search-input:focus {
+  outline: none;
+  border-color: #43a047;
+}
+
+.shts-btn-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: shts-spin 0.7s linear infinite;
+}

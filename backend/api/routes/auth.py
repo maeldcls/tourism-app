@@ -18,6 +18,7 @@ from google.auth.transport import requests as google_requests
 from database import get_db
 from deps import get_current_user
 from security import SECRET_KEY, ALGORITHM
+from codegen import generate_friend_code
 import models
 import os
 
@@ -45,6 +46,9 @@ def _user_payload(user: models.User, token: str) -> dict:
             "xp": user.xp,
             "level": user.level,
             "is_admin": user.is_admin,
+            "avatar_url": user.avatar_url,
+            "is_public": user.is_public,
+            "friend_code": user.friend_code,
         },
     }
 
@@ -85,6 +89,7 @@ def register(body: RegisterBody, db: Session = Depends(get_db)):
         email=body.email,
         username=body.username,
         password_hash=pwd_context.hash(body.password),
+        friend_code=generate_friend_code(db),
     )
     db.add(user)
     db.commit()
@@ -127,6 +132,7 @@ def google_auth(body: GoogleBody, db: Session = Depends(get_db)):
                 email=email,
                 username=_unique_username(db, display_name),
                 google_id=google_id,
+                friend_code=generate_friend_code(db),
             )
             db.add(user)
 
@@ -144,4 +150,7 @@ def me(user: models.User = Depends(get_current_user)):
         "xp": user.xp,
         "level": user.level,
         "is_admin": user.is_admin,
+        "avatar_url": user.avatar_url,
+        "is_public": user.is_public,
+        "friend_code": user.friend_code,
     }

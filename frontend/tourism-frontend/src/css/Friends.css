@@ -1,0 +1,260 @@
+.friends-page {
+  min-height: 100vh;
+  background: linear-gradient(160deg, #e8f5e9 0%, #e3f2fd 60%, #fff8e1 100%);
+  padding: 1.5rem 1rem 5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.friends-header {
+  width: 100%;
+  max-width: 460px;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.friends-back {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: #fff;
+  color: #2e7d32;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.friends-header h1 {
+  margin: 0;
+  font-size: 1.3rem;
+  color: #1b5e20;
+}
+
+.friends-card {
+  width: 100%;
+  max-width: 460px;
+  background: #fff;
+  border-radius: 18px;
+  box-shadow: 0 6px 32px rgba(46, 125, 50, 0.10);
+  padding: 1.2rem 1.2rem;
+  margin-bottom: 1rem;
+}
+
+.friends-section-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #689f38;
+  margin-bottom: 0.6rem;
+}
+
+.friends-input {
+  width: 100%;
+  padding: 0.6rem 0.8rem;
+  border-radius: 10px;
+  border: 1.5px solid #c8e6c9;
+  font-size: 0.95rem;
+  box-sizing: border-box;
+}
+
+.friends-input:focus {
+  outline: none;
+  border-color: #43a047;
+}
+
+.friends-hint {
+  font-size: 0.82rem;
+  color: #90a4ae;
+  margin-top: 0.5rem;
+}
+
+.friends-empty {
+  font-size: 0.85rem;
+  color: #90a4ae;
+  margin: 0.3rem 0 0;
+}
+
+.friends-error {
+  font-size: 0.82rem;
+  color: #c62828;
+  margin: 0.5rem 0 0;
+}
+
+.friends-code-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.friends-code-btn {
+  flex-shrink: 0;
+  padding: 0 1rem;
+  border-radius: 10px;
+  border: none;
+  background: #1e88e5;
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.88rem;
+  cursor: pointer;
+}
+
+.friends-code-btn:hover {
+  background: #1565c0;
+}
+
+.friends-code-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.frn-list {
+  list-style: none;
+  margin: 0.7rem 0 0;
+  padding: 0;
+}
+
+.frn-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  padding: 0.5rem 0;
+  border-top: 1px solid #f1f1f1;
+}
+
+.frn-item:first-child {
+  border-top: none;
+}
+
+.frn-item-main {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  min-width: 0;
+}
+
+.frn-avatar {
+  flex-shrink: 0;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #43a047, #1e88e5);
+  color: #fff;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.frn-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.frn-username {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: #37474f;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.frn-badge {
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.3rem 0.6rem;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.frn-badge--friend {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.frn-badge--pending {
+  background: #fff3e0;
+  color: #ef6c00;
+}
+
+.frn-add-btn,
+.frn-cancel-btn {
+  flex-shrink: 0;
+  padding: 0.35rem 0.75rem;
+  border-radius: 8px;
+  border: none;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.frn-add-btn {
+  background: #43a047;
+  color: #fff;
+}
+
+.frn-add-btn:hover {
+  background: #2e7d32;
+}
+
+.frn-cancel-btn {
+  background: #f5f5f5;
+  color: #c62828;
+}
+
+.frn-cancel-btn:hover {
+  background: #ffebee;
+}
+
+.frn-add-btn:disabled,
+.frn-cancel-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.frn-request-actions {
+  display: flex;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+.frn-accept-btn,
+.frn-decline-btn {
+  padding: 0.35rem 0.65rem;
+  border-radius: 8px;
+  border: none;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.frn-accept-btn {
+  background: #43a047;
+  color: #fff;
+}
+
+.frn-decline-btn {
+  background: #f5f5f5;
+  color: #616161;
+}
+
+.frn-accept-btn:disabled,
+.frn-decline-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}

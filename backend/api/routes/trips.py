@@ -10,12 +10,14 @@ DELETE /trips/{trip_id}                           → supprimer un trajet
 """
 import os
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import Optional
 import requests
 from database import get_db
 from deps import get_current_user
+from trip_utils import get_trip_role, require_trip_role, accessible_trip_ids
 import models
 
 router = APIRouter(prefix="/trips", tags=["Trajets"])
@@ -63,15 +65,21 @@ class TripReorder(BaseModel):
 
 
 # ── GET /trips/user/{user_id} ──────────────────────────────────────────────────
+# Renvoie les trajets possédés par l'utilisateur ET ceux partagés avec lui
+# (collaboration acceptée), avec son rôle sur chacun.
 @router.get("/user/{user_id}")
-def get_user_trips(user_id: int, db: Session = Depends(get_db)):
-    user = db.query(models.User).filter(models.User.id == user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User introuvable")
+def get_user_trips(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    if user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Accès refusé")
 
+    trip_ids = accessible_trip_ids(db, user_id)
     trips = (
         db.query(models.Trip)
-        .filter(models.Trip.user_id == user_id)
+        .filter(models.Trip.id.in_(trip_ids))
         .order_by(models.Trip.created_at.desc())
         .all()
     )
@@ -87,6 +95,28 @@ def get_user_trips(user_id: int, db: Session = Depends(get_db)):
             "created_at": t.created_at,
             "use_days": t.use_days,
             "day_count": t.day_count,
+            "role": get_trip_role(db, t, current_user),
+            "host": {"id": t.user.id, "username": t.user.username} if t.user_id != user_id else None,
+            "members": [
+                {
+                    "collaborator_id": None,
+                    "id": t.user.id,
+                    "username": t.user.username,
+                    "avatar_url": t.user.avatar_url,
+                    "role": "host",
+                },
+                *[
+                    {
+                        "collaborator_id": c.id,
+                        "id": c.user.id,
+                        "username": c.user.username,
+                        "avatar_url": c.user.avatar_url,
+                        "role": c.role,
+                    }
+                    for c in t.collaborators
+                    if c.status == "accepted"
+                ],
+            ],
             "monuments": [
                 {
                     "monument_id": tm.monument_id,
@@ -136,10 +166,10 @@ def get_user_points(
     if user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Accès refusé")
 
+    trip_ids = accessible_trip_ids(db, user_id)
     tms = (
         db.query(models.TripMonument)
-        .join(models.Trip)
-        .filter(models.Trip.user_id == user_id)
+        .filter(models.TripMonument.trip_id.in_(trip_ids))
         .all()
     )
     monument_points = [
@@ -165,7 +195,12 @@ def get_user_points(
 
     custom = (
         db.query(models.CustomPoint)
-        .filter(models.CustomPoint.user_id == user_id)
+        .filter(
+            or_(
+                models.CustomPoint.trip_id.in_(trip_ids),
+                and_(models.CustomPoint.user_id == user_id, models.CustomPoint.trip_id.is_(None)),
+            )
+        )
         .all()
     )
     custom_points = [
@@ -211,10 +246,16 @@ def create_trip(body: TripCreate, db: Session = Depends(get_db)):
 
 # ── POST /trips/{trip_id}/monuments ───────────────────────────────────────────
 @router.post("/{trip_id}/monuments", status_code=201)
-def add_monument_to_trip(trip_id: int, body: TripMonumentAdd, db: Session = Depends(get_db)):
+def add_monument_to_trip(
+    trip_id: int,
+    body: TripMonumentAdd,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
     trip = db.query(models.Trip).filter(models.Trip.id == trip_id).first()
     if not trip:
         raise HTTPException(status_code=404, detail="Trajet introuvable")
+    require_trip_role(db, trip, current_user, "write")
 
     monument = db.query(models.Monument).filter(models.Monument.id == body.monument_id).first()
     if not monument:
@@ -250,8 +291,7 @@ def update_trip_monument(
     trip = db.query(models.Trip).filter(models.Trip.id == trip_id).first()
     if not trip:
         raise HTTPException(status_code=404, detail="Trajet introuvable")
-    if trip.user_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Accès refusé")
+    require_trip_role(db, trip, current_user, "write")
 
     tm = db.query(models.TripMonument).filter(
         models.TripMonument.trip_id == trip_id,
@@ -291,14 +331,12 @@ def move_monument_to_trip(
     trip = db.query(models.Trip).filter(models.Trip.id == trip_id).first()
     if not trip:
         raise HTTPException(status_code=404, detail="Trajet introuvable")
-    if trip.user_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Accès refusé")
+    require_trip_role(db, trip, current_user, "write")
 
     target_trip = db.query(models.Trip).filter(models.Trip.id == body.target_trip_id).first()
     if not target_trip:
         raise HTTPException(status_code=404, detail="Trajet cible introuvable")
-    if target_trip.user_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Accès refusé")
+    require_trip_role(db, target_trip, current_user, "write")
 
     tm = db.query(models.TripMonument).filter(
         models.TripMonument.trip_id == trip_id,
@@ -336,7 +374,17 @@ def move_monument_to_trip(
 
 # ── DELETE /trips/{trip_id}/monuments/{monument_id} ───────────────────────────
 @router.delete("/{trip_id}/monuments/{monument_id}", status_code=200)
-def remove_monument_from_trip(trip_id: int, monument_id: int, db: Session = Depends(get_db)):
+def remove_monument_from_trip(
+    trip_id: int,
+    monument_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    trip = db.query(models.Trip).filter(models.Trip.id == trip_id).first()
+    if not trip:
+        raise HTTPException(status_code=404, detail="Trajet introuvable")
+    require_trip_role(db, trip, current_user, "write")
+
     tm = db.query(models.TripMonument).filter(
         models.TripMonument.trip_id == trip_id,
         models.TripMonument.monument_id == monument_id,
@@ -349,11 +397,18 @@ def remove_monument_from_trip(trip_id: int, monument_id: int, db: Session = Depe
 
 
 # ── DELETE /trips/{trip_id} ────────────────────────────────────────────────────
+# Suppression du trajet entier : réservée au host (action irréversible pour tous les collaborateurs).
 @router.delete("/{trip_id}", status_code=200)
-def delete_trip(trip_id: int, db: Session = Depends(get_db)):
+def delete_trip(
+    trip_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
     trip = db.query(models.Trip).filter(models.Trip.id == trip_id).first()
     if not trip:
         raise HTTPException(status_code=404, detail="Trajet introuvable")
+    if trip.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Seul le host peut supprimer le trajet")
     db.delete(trip)
     db.commit()
     return {"detail": "Trajet supprimé"}
@@ -370,8 +425,7 @@ def update_trip_settings(
     trip = db.query(models.Trip).filter(models.Trip.id == trip_id).first()
     if not trip:
         raise HTTPException(status_code=404, detail="Trajet introuvable")
-    if trip.user_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Accès refusé")
+    require_trip_role(db, trip, current_user, "write")
 
     if body.use_days is not None:
         trip.use_days = body.use_days
@@ -392,8 +446,7 @@ def reorder_trip_monuments(
     trip = db.query(models.Trip).filter(models.Trip.id == trip_id).first()
     if not trip:
         raise HTTPException(status_code=404, detail="Trajet introuvable")
-    if trip.user_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Accès refusé")
+    require_trip_role(db, trip, current_user, "write")
 
     tms = {
         tm.monument_id: tm
@@ -430,8 +483,7 @@ def get_trip_route(
     trip = db.query(models.Trip).filter(models.Trip.id == trip_id).first()
     if not trip:
         raise HTTPException(status_code=404, detail="Trajet introuvable")
-    if trip.user_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Accès refusé")
+    require_trip_role(db, trip, current_user, "read")
 
     ordered = sorted(trip.trip_monuments, key=lambda tm: tm.order)
     coords = [

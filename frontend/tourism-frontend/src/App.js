@@ -9,6 +9,8 @@ import MapPage from './pages/MapPage';
 import Travel from './pages/Travel';
 import Monument from './pages/Monument';
 import Profile from './pages/Profile';
+import UserProfile from './pages/UserProfile';
+import Friends from './pages/Friends';
 import Stats from './pages/Stats';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -33,6 +35,8 @@ function Layout() {
         <Route path="/travel" element={<Travel />} />
         <Route path="/monument" element={<Monument />} />
         <Route path="/profile" element={<Profile />} />
+        <Route path="/profile/:userId" element={<UserProfile />} />
+        <Route path="/friends" element={<Friends />} />
         <Route path="/stats" element={<Stats />} />
         <Route path="/admin/comments" element={<AdminComments />} />
         <Route path="/admin/tags" element={<AdminTags />} />
