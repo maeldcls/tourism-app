@@ -18,6 +18,7 @@ import requests
 from database import get_db
 from deps import get_current_user
 from trip_utils import get_trip_role, require_trip_role, accessible_trip_ids
+from visit_utils import record_visit
 import models
 
 router = APIRouter(prefix="/trips", tags=["Trajets"])
@@ -302,6 +303,10 @@ def update_trip_monument(
 
     if body.is_visited is not None:
         tm.is_visited = body.is_visited
+        if body.is_visited:
+            # Un monument validé comme visité dans un trajet doit aussi apparaître
+            # comme visité sur sa fiche et dans la liste globale des lieux visités.
+            record_visit(db, current_user, monument_id)
     if body.icon is not None:
         tm.icon = body.icon
     if body.color is not None:

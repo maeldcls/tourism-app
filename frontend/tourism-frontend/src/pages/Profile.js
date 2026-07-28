@@ -1,11 +1,13 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import NotificationBell from '../components/NotificationBell';
+import VisitedMonumentCard from '../components/VisitedMonumentCard';
 import API_URL from '../config';
 import '../css/Profile.css';
 
 const API = API_URL;
+const VISITED_PREVIEW_COUNT = 6;
 
 export default function Profile() {
   const { user, token, logout, updateUser } = useAuth();
@@ -17,6 +19,27 @@ export default function Profile() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
   const [codeCopied, setCodeCopied] = useState(false);
+
+  const [visitedPreview, setVisitedPreview] = useState([]);
+  const [visitedTotal, setVisitedTotal] = useState(0);
+  const [visitedLoading, setVisitedLoading] = useState(true);
+
+  useEffect(() => {
+    if (!user || !token) return;
+    let cancelled = false;
+    fetch(`${API}/visits/user/${user.id}?limit=${VISITED_PREVIEW_COUNT}&offset=0`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(r => (r.ok ? r.json() : null))
+      .then(data => {
+        if (cancelled || !data) return;
+        setVisitedPreview(data.items);
+        setVisitedTotal(data.total);
+      })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setVisitedLoading(false); });
+    return () => { cancelled = true; };
+  }, [user, token]);
 
   if (!user) return <Navigate to="/login" replace />;
 
@@ -207,6 +230,42 @@ export default function Profile() {
         <button className="profile-friends-btn" onClick={() => navigate('/friends')}>
           Mes amis
         </button>
+
+        <div className="profile-visited-section">
+          <div className="profile-visited-header">
+            <h2 className="profile-visited-title">Lieux visités</h2>
+            {visitedTotal > 0 && <span className="profile-visited-count">{visitedTotal}</span>}
+          </div>
+
+          {visitedLoading && (
+            <div className="profile-visited-grid">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="profile-visited-skeleton" />
+              ))}
+            </div>
+          )}
+
+          {!visitedLoading && visitedPreview.length === 0 && (
+            <p className="profile-visited-empty">
+              Aucun lieu visité pour l'instant. Marquez un monument comme visité depuis sa page !
+            </p>
+          )}
+
+          {!visitedLoading && visitedPreview.length > 0 && (
+            <>
+              <div className="profile-visited-grid">
+                {visitedPreview.map(v => (
+                  <VisitedMonumentCard key={v.visit_id} visit={v} />
+                ))}
+              </div>
+              {visitedTotal > visitedPreview.length && (
+                <button className="profile-visited-more-btn" onClick={() => navigate('/visited')}>
+                  Voir plus
+                </button>
+              )}
+            </>
+          )}
+        </div>
 
         {user.is_admin && (
           <>

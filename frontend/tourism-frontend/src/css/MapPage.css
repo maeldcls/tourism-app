@@ -91,6 +91,51 @@
   background: #c87941;
 }
 
+.mappage-trip-banner-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.mappage-share-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  opacity: 1;
+}
+
+.mappage-share-btn:hover { background: rgba(255, 255, 255, 0.22); }
+
+.mappage-share-btn--active {
+  background: #43a047;
+}
+
+.mappage-member-marker {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #1e88e5;
+  color: #fff;
+  border: 2.5px solid #fff;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 700;
+  overflow: hidden;
+}
+
+.mappage-member-marker img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 /* ── Curseur en mode ajout de point ─────────────────────────────── */
 .mappage-map--adding {
   cursor: crosshair;

@@ -1,7 +1,25 @@
+import datetime
+
 from fastapi import FastAPI
+from fastapi.encoders import ENCODERS_BY_TYPE
 from fastapi.middleware.cors import CORSMiddleware  # type: ignore[import]
 from fastapi.staticfiles import StaticFiles
 import models  # noqa: F401 — nécessaire pour que SQLAlchemy détecte les modèles
+
+# Toutes les colonnes datetime du projet sont des TIMESTAMP (sans fuseau) remplies
+# via datetime.utcnow() — donc toujours des instants UTC, mais Python les renvoie
+# "naïfs" (sans tzinfo). Sans ce correctif, .isoformat() produit une chaîne du
+# genre "2026-07-28T14:29:01" sans indication de fuseau, que le JS du frontend
+# interprète comme une heure LOCALE (pas UTC) : ça décale chaque heure affichée
+# de l'offset du fuseau du navigateur (ex. +2h en France l'été, d'où les écarts
+# du type "il y a 120 minutes" pour un événement qui vient de se produire).
+def _isoformat_assume_utc(dt: datetime.datetime) -> str:
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=datetime.timezone.utc)
+    return dt.isoformat()
+
+
+ENCODERS_BY_TYPE[datetime.datetime] = _isoformat_assume_utc
 from routes_test import router as test_router
 from routes.auth import router as auth_router
 from routes.monuments import router as monuments_router
@@ -21,6 +39,7 @@ from routes.monument_tags import router as monument_tags_router
 from routes.friends import router as friends_router
 from routes.notifications import router as notifications_router
 from routes.trip_collaborators import router as trip_collaborators_router
+from routes.trip_locations import router as trip_locations_router
 
 app = FastAPI(title="Tourism API")
 
@@ -55,6 +74,7 @@ app.include_router(monument_tags_router)
 app.include_router(friends_router)
 app.include_router(notifications_router)
 app.include_router(trip_collaborators_router)
+app.include_router(trip_locations_router)
 
 # Routes de test temporaires — à supprimer avant la prod
 app.include_router(test_router)

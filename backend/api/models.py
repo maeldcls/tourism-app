@@ -66,6 +66,7 @@ class Monument(Base):
 
 class Visit(Base):
     __tablename__ = "visits"
+    __table_args__ = (UniqueConstraint("user_id", "monument_id", name="uq_visit_user_monument"),)
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     user_id = Column(BigInteger, ForeignKey("users.id"), nullable=False)
@@ -147,6 +148,7 @@ class Trip(Base):
     trip_monuments = relationship("TripMonument", back_populates="trip", cascade="all, delete-orphan")
     custom_points = relationship("CustomPoint", back_populates="trip")
     collaborators = relationship("TripCollaborator", back_populates="trip", cascade="all, delete-orphan")
+    location_shares = relationship("TripLocationShare", back_populates="trip", cascade="all, delete-orphan")
 
 
 class TripMonument(Base):
@@ -299,3 +301,18 @@ class TripCollaborator(Base):
     user = relationship("User", back_populates="trip_collaborations", foreign_keys=[user_id])
 
     __table_args__ = (UniqueConstraint("trip_id", "user_id", name="uq_trip_collaborator"),)
+
+
+class TripLocationShare(Base):
+    """Partage de position en direct sur un trajet — V1 : dernière position connue
+    uniquement (pas d'historique de tracé), tant que l'app est ouverte au premier plan."""
+    __tablename__ = "trip_location_shares"
+
+    trip_id = Column(BigInteger, ForeignKey("trips.id"), primary_key=True)
+    user_id = Column(BigInteger, ForeignKey("users.id"), primary_key=True)
+    latitude = Column(Float, nullable=False)
+    longitude = Column(Float, nullable=False)
+    updated_at = Column(TIMESTAMP, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    trip = relationship("Trip", back_populates="location_shares")
+    user = relationship("User")

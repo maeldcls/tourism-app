@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import '../css/Monument.css';
 import ImageLightbox from '../components/ImageLightbox';
@@ -8,6 +8,8 @@ import CommentsSection from '../components/CommentsSection';
 import RatingWidget from '../components/RatingWidget';
 import MonumentTags from '../components/MonumentTags';
 import { useMonumentImages } from '../hooks/useMonumentImages';
+import { useAuth } from '../context/AuthContext';
+import API_URL from '../config';
 
 const MAX_VISIBLE_THUMBS = 3;
 
@@ -15,16 +17,55 @@ export default function Monument() {
   const { state }  = useLocation();
   const navigate   = useNavigate();
   const monument   = state?.monument;
+  const { token }  = useAuth();
 
   const [activeImg, setActiveImg]         = useState(0);
   const [lightboxIndex, setLightboxIndex] = useState(null);
   const [showTripDialog, setShowTripDialog] = useState(false);
   const [showPhotoDialog, setShowPhotoDialog] = useState(false);
   const [visited, setVisited]             = useState(false);
+  const [visitSaving, setVisitSaving]     = useState(false);
 
   // Si on vient du sheet, les images sont déjà résolues et passées en state
   // Le hook les récupère depuis le cache → pas de double appel réseau
   const { images, loading } = useMonumentImages(monument);
+
+  useEffect(() => {
+    if (!monument?.id || !token) { setVisited(false); return; }
+    let cancelled = false;
+    fetch(`${API_URL}/visits/status/${monument.id}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(r => (r.ok ? r.json() : null))
+      .then(data => { if (!cancelled && data) setVisited(data.visited); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [monument?.id, token]);
+
+  async function toggleVisited() {
+    if (!monument?.id || !token || visitSaving) return;
+    const next = !visited;
+    setVisited(next);
+    setVisitSaving(true);
+    try {
+      const r = await fetch(
+        next ? `${API_URL}/visits` : `${API_URL}/visits/monument/${monument.id}`,
+        {
+          method: next ? 'POST' : 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: next ? JSON.stringify({ monument_id: monument.id }) : undefined,
+        }
+      );
+      if (!r.ok) throw new Error();
+    } catch {
+      setVisited(!next); // rollback si la requête échoue
+    } finally {
+      setVisitSaving(false);
+    }
+  }
 
   if (!monument) {
     return (
@@ -162,7 +203,9 @@ export default function Monument() {
           <div className="monu-actions">
             <button
               className={`monu-visit-btn${visited ? ' monu-visit-btn--active' : ''}`}
-              onClick={() => setVisited(v => !v)}
+              onClick={toggleVisited}
+              disabled={!token || visitSaving}
+              title={!token ? 'Connectez-vous pour enregistrer vos visites' : undefined}
             >
               {visited ? 'Lieu visité ✓' : "J'ai visité ce lieu"}
             </button>

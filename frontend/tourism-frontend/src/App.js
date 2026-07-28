@@ -11,6 +11,7 @@ import Monument from './pages/Monument';
 import Profile from './pages/Profile';
 import UserProfile from './pages/UserProfile';
 import Friends from './pages/Friends';
+import VisitedPlaces from './pages/VisitedPlaces';
 import Stats from './pages/Stats';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -37,6 +38,7 @@ function Layout() {
         <Route path="/profile" element={<Profile />} />
         <Route path="/profile/:userId" element={<UserProfile />} />
         <Route path="/friends" element={<Friends />} />
+        <Route path="/visited" element={<VisitedPlaces />} />
         <Route path="/stats" element={<Stats />} />
         <Route path="/admin/comments" element={<AdminComments />} />
         <Route path="/admin/tags" element={<AdminTags />} />

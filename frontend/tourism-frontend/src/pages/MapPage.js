@@ -68,6 +68,33 @@ function makeIcon(color, selected = false) {
 // ── Couleur du tracé d'un trajet sélectionné ───────────────────────────────────
 const TRIP_PENDING_COLOR = '#1e3a5f';
 
+// ── Position en direct des membres d'un trajet ─────────────────────────────────
+const LOCATION_POLL_MS = 8000;
+const LOCATION_HEARTBEAT_MS = 20000;
+
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  }[c]));
+}
+
+function makeMemberIcon(username, avatarUrl) {
+  const initial = escapeHtml((username || '?')[0]?.toUpperCase() || '?');
+  const inner = avatarUrl
+    ? `<img src="${escapeHtml(`${API}${avatarUrl}`)}" alt="" />`
+    : `<span>${initial}</span>`;
+  return L.divIcon({
+    html: `<div class="mappage-member-marker">${inner}</div>`,
+    className: '', iconSize: [30, 30], iconAnchor: [15, 15], popupAnchor: [0, -18],
+  });
+}
+
+function timeAgoLabel(iso) {
+  const seconds = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 1000));
+  if (seconds < 60) return "à l'instant";
+  return `il y a ${Math.round(seconds / 60)} min`;
+}
+
 // ── Couche affichant les marqueurs + le tracé d'un trajet sélectionné ─────────
 function TripRouteLayer({ trip, routeCoords, onSelect }) {
   const map = useMap();
@@ -196,6 +223,8 @@ export default function MapPage() {
   const { user, token } = useAuth();
   const presetTripId   = state?.presetTripId ?? null; // trajet préselectionné depuis Travel.js
   const presetTripName = state?.presetTripName ?? null;
+  const autoShareLocation = state?.autoShareLocation ?? false; // bouton "Partager ma position" depuis Travel.js
+  const presetMonument = state?.monument ?? null; // bouton "Voir sur la carte" depuis Monument.js
 
   const [pois, setPois]               = useState([]);
   const [userPos, setUserPos]         = useState(null);
@@ -210,12 +239,141 @@ export default function MapPage() {
   const [addMode, setAddMode]         = useState(() => !!presetTripId); // mode "ajout de point" actif (clic à venir)
   const [pendingPoint, setPendingPoint] = useState(null); // {lat, lng} en attente de validation via le formulaire
   const [showPointsManager, setShowPointsManager] = useState(false); // bottom-sheet de gestion des points
+  const [sharingLocation, setSharingLocation] = useState(false); // je partage ma position sur le trajet affiché
+  const [memberLocations, setMemberLocations] = useState([]); // positions récentes des membres du trajet (soi-même inclus)
 
   // Cache en mémoire : survit aux re-renders, pas besoin de re-fetch
   const poisMapRef   = useRef(new Map()); // id → poi (accumulation)
   const fetchedCells = useRef(new Set()); // clés de cellules déjà chargées
   const debounceTimer = useRef(null);
   const mapRef         = useRef(null);
+
+  // Partage de position en direct — refs pour éviter les stale closures dans
+  // watchPosition/setInterval/beforeunload (V1 : app ouverte au premier plan
+  // uniquement, dernière position connue, pas d'historique de tracé stocké).
+  const watchIdRef    = useRef(null);
+  const heartbeatRef  = useRef(null);
+  const locationPollRef = useRef(null);
+  const lastPosRef    = useRef(null);
+  const sharingRef    = useRef(false);
+  const tripIdRef     = useRef(null);
+
+  useEffect(() => { sharingRef.current = sharingLocation; }, [sharingLocation]);
+  useEffect(() => { tripIdRef.current = trip?.id ?? null; }, [trip]);
+
+  const pushLocation = useCallback((tripId, lat, lng) => {
+    if (!token) return;
+    fetch(`${API}/trips/${tripId}/location`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ latitude: lat, longitude: lng }),
+    }).catch(() => {});
+  }, [token]);
+
+  const startSharing = useCallback((tripId) => {
+    if (!navigator.geolocation || watchIdRef.current != null) return;
+    watchIdRef.current = navigator.geolocation.watchPosition(
+      pos => {
+        lastPosRef.current = [pos.coords.latitude, pos.coords.longitude];
+        pushLocation(tripId, pos.coords.latitude, pos.coords.longitude);
+      },
+      () => {},
+      { enableHighAccuracy: true, maximumAge: 10_000, timeout: 15_000 }
+    );
+    // Heartbeat : garde la position "fraîche" côté serveur même si l'utilisateur
+    // ne bouge pas (watchPosition ne déclenche pas forcément à intervalle régulier).
+    heartbeatRef.current = setInterval(() => {
+      if (lastPosRef.current) pushLocation(tripId, lastPosRef.current[0], lastPosRef.current[1]);
+    }, LOCATION_HEARTBEAT_MS);
+  }, [pushLocation]);
+
+  const stopSharing = useCallback((tripId) => {
+    if (watchIdRef.current != null) {
+      navigator.geolocation.clearWatch(watchIdRef.current);
+      watchIdRef.current = null;
+    }
+    if (heartbeatRef.current) {
+      clearInterval(heartbeatRef.current);
+      heartbeatRef.current = null;
+    }
+    lastPosRef.current = null;
+    if (tripId && token) {
+      fetch(`${API}/trips/${tripId}/location`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+        keepalive: true,
+      }).catch(() => {});
+    }
+  }, [token]);
+
+  function toggleShareLocation() {
+    if (!trip) return;
+    if (sharingLocation) {
+      stopSharing(trip.id);
+      setSharingLocation(false);
+    } else {
+      startSharing(trip.id);
+      setSharingLocation(true);
+    }
+  }
+
+  // Positions des membres du trajet affiché : chargement initial (reprend un
+  // partage déjà actif côté serveur après un rechargement de page) + polling.
+  // Au démontage / changement de trajet : on arrête proprement mon propre partage.
+  useEffect(() => {
+    if (!trip || !token || !user) {
+      setMemberLocations([]);
+      setSharingLocation(false);
+      return;
+    }
+    let cancelled = false;
+    let firstLoad = true;
+
+    function refresh() {
+      fetch(`${API}/trips/${trip.id}/locations`, { headers: { Authorization: `Bearer ${token}` } })
+        .then(r => (r.ok ? r.json() : []))
+        .then(data => {
+          if (cancelled) return;
+          const list = Array.isArray(data) ? data : [];
+          setMemberLocations(list);
+          if (firstLoad) {
+            firstLoad = false;
+            if (list.some(l => l.user_id === user.id) || autoShareLocation) {
+              setSharingLocation(true);
+              startSharing(trip.id);
+            }
+          }
+        })
+        .catch(() => {});
+    }
+
+    refresh();
+    locationPollRef.current = setInterval(refresh, LOCATION_POLL_MS);
+
+    return () => {
+      cancelled = true;
+      clearInterval(locationPollRef.current);
+      stopSharing(trip.id);
+      setSharingLocation(false);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [trip?.id, token, user]);
+
+  // Best-effort : arrêter le partage si l'utilisateur ferme complètement l'onglet
+  // (la fermeture React normale est déjà couverte par le cleanup de l'effet ci-dessus).
+  useEffect(() => {
+    function handleUnload() {
+      if (sharingRef.current && tripIdRef.current && token) {
+        fetch(`${API}/trips/${tripIdRef.current}/location`, {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${token}` },
+          keepalive: true,
+        }).catch(() => {});
+      }
+    }
+    window.addEventListener('beforeunload', handleUnload);
+    return () => window.removeEventListener('beforeunload', handleUnload);
+  }, [token]);
 
   // Géolocalisation initiale — on garde la position utilisateur pour le marqueur
   // (ne recentre pas la carte : on veut conserver la position déjà consultée)
@@ -275,6 +433,33 @@ export default function MapPage() {
     }
     mapRef.current?.flyTo([poi.latitude, poi.longitude], 17, { duration: 1.2 });
     setSelected({ ...poi, _cat: getCategory(poi.category) });
+  }, []);
+
+  // Monument présélectionné depuis Monument.js ("Voir sur la carte") : on centre
+  // dessus et on ouvre sa fiche, comme pour une sélection depuis la recherche.
+  // Le ref de la carte Leaflet peut ne pas être prêt au tout premier rendu →
+  // petite tentative répétée plutôt que de silencieusement ignorer le flyTo.
+  useEffect(() => {
+    if (presetMonument?.id == null || presetMonument.latitude == null || presetMonument.longitude == null) return;
+
+    if (!poisMapRef.current.has(presetMonument.id)) {
+      poisMapRef.current.set(presetMonument.id, presetMonument);
+      setPois([...poisMapRef.current.values()]);
+    }
+    setSelected({ ...presetMonument, _cat: getCategory(presetMonument.category) });
+
+    let attempts = 0;
+    let timer = null;
+    const tryFly = () => {
+      if (mapRef.current) {
+        mapRef.current.flyTo([presetMonument.latitude, presetMonument.longitude], 17, { duration: 1.2 });
+      } else if (attempts++ < 20) {
+        timer = setTimeout(tryFly, 50);
+      }
+    };
+    tryFly();
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Sélection d'un lieu (ville, adresse…) depuis la recherche → recentre sans ouvrir de fiche
@@ -511,7 +696,19 @@ export default function MapPage() {
       {trip && (
         <div className="mappage-trip-banner">
           <span>Itinéraire : {trip.name}</span>
-          <button onClick={() => setTrip(null)} aria-label="Quitter le mode itinéraire">×</button>
+          <div className="mappage-trip-banner-actions">
+            <button
+              className={`mappage-share-btn${sharingLocation ? ' mappage-share-btn--active' : ''}`}
+              onClick={toggleShareLocation}
+              aria-label={sharingLocation ? 'Arrêter de partager ma position' : 'Partager ma position avec le trajet'}
+              title={sharingLocation ? 'Arrêter de partager ma position' : 'Partager ma position avec le trajet'}
+            >
+              <svg viewBox="0 0 24 24" fill="currentColor" width="15" height="15">
+                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
+              </svg>
+            </button>
+            <button onClick={() => setTrip(null)} aria-label="Quitter le mode itinéraire">×</button>
+          </div>
         </div>
       )}
 
@@ -561,6 +758,17 @@ export default function MapPage() {
         )}
 
         <TripRouteLayer trip={trip} routeCoords={tripRoute} onSelect={selectTripMonument} />
+
+        {/* Position en direct des autres membres du trajet (soi-même exclu) */}
+        {memberLocations.filter(l => l.user_id !== user?.id).map(l => (
+          <Marker
+            key={`member-${l.user_id}`}
+            position={[l.latitude, l.longitude]}
+            icon={makeMemberIcon(l.username, l.avatar_url)}
+          >
+            <Popup>{l.username} · {timeAgoLabel(l.updated_at)}</Popup>
+          </Marker>
+        ))}
 
         {/* Points de l'utilisateur (monuments-en-trajet + points personnalisés) */}
         {visibleMyPoints.map(p => {

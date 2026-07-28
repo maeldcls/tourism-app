@@ -163,6 +163,10 @@ def remove_collaborator(
     if not is_host and not is_self:
         raise HTTPException(status_code=403, detail="Accès refusé")
 
+    db.query(models.TripLocationShare).filter(
+        models.TripLocationShare.trip_id == trip_id,
+        models.TripLocationShare.user_id == collab.user_id,
+    ).delete()
     db.delete(collab)
     db.commit()
     return {"detail": "Membre retiré"}
@@ -229,6 +233,10 @@ def leave_trip(
     if not collab:
         raise HTTPException(status_code=404, detail="Vous n'êtes pas membre de ce trajet")
 
+    db.query(models.TripLocationShare).filter(
+        models.TripLocationShare.trip_id == trip_id,
+        models.TripLocationShare.user_id == current_user.id,
+    ).delete()
     db.delete(collab)
     db.commit()
     return {"detail": "Vous avez quitté le trajet"}

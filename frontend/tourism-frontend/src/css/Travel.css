@@ -770,6 +770,24 @@
 
 .trip-map-btn:hover { background: #e8eef5; }
 
+.trip-share-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.75rem;
+  margin-bottom: 0.6rem;
+  background: none;
+  border: 1.5px solid #43a047;
+  border-radius: 8px;
+  color: #2e7d32;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.trip-share-btn:hover { background: #eaf6ea; }
+
 .trip-addpoint-btn {
   display: flex;
   align-items: center;
