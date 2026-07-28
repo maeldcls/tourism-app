@@ -129,7 +129,7 @@ def send_friend_request(
 
     target = db.query(models.User).filter(models.User.id == body.user_id).first()
     if not target:
-        raise HTTPException(status_code=404, detail="Utilisateur introuvable")
+        raise HTTPException(status_code=404, detail="Utilisateur introuvable.")
 
     existing = find_friendship(db, current_user.id, target.id)
     if existing:
