@@ -15,6 +15,7 @@ export default function NotificationBell() {
 
   useEffect(() => {
     fetchNotifications();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
   useEffect(() => {
