@@ -1,6 +1,14 @@
 .vplaces-page {
+  --vp-bg-top: #eef8ea;
+  --vp-bg-bottom: #f5eff5;
+  --vp-ink: #241b2e;
+  --vp-muted: #82788f;
+  --vp-border: #e7e1e8;
+  --vp-teal: #348aa7;
+  --vp-teal-dark: #276a80;
+
   min-height: 100vh;
-  background: linear-gradient(160deg, #e8f5e9 0%, #e3f2fd 60%, #fff8e1 100%);
+  background: linear-gradient(180deg, var(--vp-bg-top) 0%, var(--vp-bg-bottom) 100%);
   padding: 1.5rem 1rem 5rem;
   display: flex;
   flex-direction: column;
@@ -22,19 +30,19 @@
   border-radius: 50%;
   border: none;
   background: #fff;
-  color: #2e7d32;
+  color: var(--vp-teal-dark);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   flex-shrink: 0;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 8px rgba(36, 27, 46, 0.12);
 }
 
 .vplaces-header h1 {
   margin: 0;
   font-size: 1.3rem;
-  color: #1b5e20;
+  color: var(--vp-ink);
 }
 
 .vplaces-error {
@@ -43,7 +51,7 @@
 }
 
 .vplaces-empty {
-  color: #78909c;
+  color: var(--vp-muted);
   font-size: 0.95rem;
 }
 
@@ -58,7 +66,7 @@
 .vplaces-skeleton {
   aspect-ratio: 4 / 3;
   border-radius: 14px;
-  background: linear-gradient(90deg, #e5e3d6 25%, #d8d6c4 50%, #e5e3d6 75%);
+  background: linear-gradient(90deg, var(--vp-border) 25%, #dcd5df 50%, var(--vp-border) 75%);
   background-size: 200% 100%;
   animation: vplaces-shimmer 1.4s infinite;
 }

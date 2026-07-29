@@ -87,10 +87,6 @@ export default function MonumentSheet({ monument, onClose }) {
           <p className="sheet-description">{monument.description}</p>
         )}
 
-        <div className="sheet-coords">
-          {monument.latitude?.toFixed(5)}, {monument.longitude?.toFixed(5)}
-        </div>
-
         <button
           className="sheet-save"
           onClick={() => setShowTripDialog(true)}

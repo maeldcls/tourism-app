@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import './css/App.css';
 
 import { AuthProvider } from './context/AuthContext';
@@ -40,6 +40,7 @@ function Layout() {
         <Route path="/friends" element={<Friends />} />
         <Route path="/visited" element={<VisitedPlaces />} />
         <Route path="/stats" element={<Stats />} />
+        <Route path="/admin" element={<Navigate to="/admin/comments" replace />} />
         <Route path="/admin/comments" element={<AdminComments />} />
         <Route path="/admin/tags" element={<AdminTags />} />
         <Route path="/admin/photos" element={<AdminPhotos />} />

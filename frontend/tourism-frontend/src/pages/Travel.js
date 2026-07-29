@@ -21,9 +21,9 @@ import { CSS } from '@dnd-kit/utilities';
 const API = API_URL;
 
 const STATUS_META = {
-  planned:   { label: 'Planifié',  color: '#5c8a5c' },
-  ongoing:   { label: 'En cours',  color: '#a8b826' },
-  completed: { label: 'Terminé',   color: '#8b8b7a' },
+  planned:   { label: 'Planifié',  color: '#348aa7' },
+  ongoing:   { label: 'En cours',  color: '#5dd39e' },
+  completed: { label: 'Terminé',   color: '#513b56' },
 };
 
 // ── Fusion monuments + points custom en une seule liste d'items de timeline ──
@@ -347,10 +347,10 @@ function TripCard({ trip, onRemoveItem, onDeleteTrip, onToggleVisited, justToggl
   const canEdit = role !== 'read';
   const [activeId, setActiveId] = useState(null);
   const total = trip.monuments.length + (trip.custom_points?.length || 0);
-  const monumentsTotal = trip.monuments.length;
-  const visited = trip.monuments.filter(m => m.is_visited).length;
-  const progressPct = monumentsTotal > 0 ? (visited / monumentsTotal) * 100 : 0;
-  const computedStatus = visited === 0 ? 'planned' : visited === monumentsTotal ? 'completed' : 'ongoing';
+  const visited = trip.monuments.filter(m => m.is_visited).length
+    + (trip.custom_points || []).filter(p => p.is_visited).length;
+  const progressPct = total > 0 ? (visited / total) * 100 : 0;
+  const computedStatus = visited === 0 ? 'planned' : visited === total ? 'completed' : 'ongoing';
   const meta = STATUS_META[computedStatus];
   const dayCount = trip.day_count || 1;
 
@@ -466,10 +466,13 @@ function TripCard({ trip, onRemoveItem, onDeleteTrip, onToggleVisited, justToggl
   }
 
   return (
-    <div className={`trip-card ${open ? 'trip-card--open' : ''}`}>
+    <div
+      className={`trip-card ${open ? 'trip-card--open' : ''}`}
+      style={{ '--trip-accent': meta.color }}
+    >
       <button className="trip-pill" onClick={() => setOpen(o => !o)}>
         <span className="trip-pill-name">{trip.name}</span>
-        {monumentsTotal > 0 && (
+        {total > 0 && (
           <span className="trip-pill-progress">
             <span className="trip-pill-progress-fill" style={{ width: `${progressPct}%` }} />
           </span>
@@ -488,7 +491,7 @@ function TripCard({ trip, onRemoveItem, onDeleteTrip, onToggleVisited, justToggl
           {meta.label}
         </span>
         <span className="trip-count">{total} élément{total !== 1 ? 's' : ''}</span>
-        {monumentsTotal > 0 && <span className="trip-progress-label">{visited}/{monumentsTotal} visités</span>}
+        {total > 0 && <span className="trip-progress-label">{visited}/{total} visités</span>}
         {!isHost && (
           <span className="trip-role-badge">
             {trip.host ? `Partagé par ${trip.host.username}` : 'Partagé'} · {canEdit ? 'écriture' : 'lecture seule'}
@@ -667,77 +670,79 @@ function TripCard({ trip, onRemoveItem, onDeleteTrip, onToggleVisited, justToggl
             </DndContext>
           )}
 
-          {monumentsTotal > 0 && (
-            <button
-              className="trip-map-btn"
-              onClick={() => navigate('/map', { state: { trip } })}
-            >
-              <svg viewBox="0 0 24 24" fill="currentColor" width="15" height="15">
-                <path d="M20.5 3l-.16.03L15 5.1 9 3 3.36 4.9c-.21.07-.36.25-.36.48V20.5c0 .28.22.5.5.5l.16-.03L9 18.9l6 2.1 5.64-1.9c.21-.07.36-.25.36-.48V3.5c0-.28-.22-.5-.5-.5zM15 19l-6-2.11V5l6 2.11V19z" />
-              </svg>
-              Voir sur la carte
-            </button>
-          )}
+          <div className="trip-actions-row">
+            {total > 0 && (
+              <button
+                className="trip-map-btn"
+                onClick={() => navigate('/map', { state: { trip } })}
+              >
+                <svg viewBox="0 0 24 24" fill="currentColor" width="15" height="15">
+                  <path d="M20.5 3l-.16.03L15 5.1 9 3 3.36 4.9c-.21.07-.36.25-.36.48V20.5c0 .28.22.5.5.5l.16-.03L9 18.9l6 2.1 5.64-1.9c.21-.07.36-.25.36-.48V3.5c0-.28-.22-.5-.5-.5zM15 19l-6-2.11V5l6 2.11V19z" />
+                </svg>
+                Voir sur la carte
+              </button>
+            )}
 
-          <button
-            className="trip-share-btn"
-            onClick={() => navigate('/map', { state: { trip, autoShareLocation: true } })}
-          >
-            <svg viewBox="0 0 24 24" fill="currentColor" width="15" height="15">
-              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
-            </svg>
-            Partager ma position
-          </button>
-
-          {canEdit && (
             <button
-              className="trip-addpoint-btn"
-              onClick={() => navigate('/map', { state: { presetTripId: trip.id, presetTripName: trip.name } })}
+              className="trip-share-btn"
+              onClick={() => navigate('/map', { state: { trip, autoShareLocation: true } })}
             >
               <svg viewBox="0 0 24 24" fill="currentColor" width="15" height="15">
                 <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
               </svg>
-              Ajouter un point personnalisé
+              Partager ma position
             </button>
-          )}
 
-          {isHost && (
-            <button
-              className="trip-delete-btn"
-              onClick={() => setConfirmingDeleteTrip(true)}
-              disabled={deleting}
-            >
-              {deleting ? (
-                <div className="trip-mini-spinner trip-mini-spinner--red" />
-              ) : (
-                <>
-                  <svg viewBox="0 0 24 24" fill="currentColor" width="15" height="15">
-                    <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
-                  </svg>
-                  Supprimer ce trajet
-                </>
-              )}
-            </button>
-          )}
+            {canEdit && (
+              <button
+                className="trip-addpoint-btn"
+                onClick={() => navigate('/map', { state: { presetTripId: trip.id, presetTripName: trip.name } })}
+              >
+                <svg viewBox="0 0 24 24" fill="currentColor" width="15" height="15">
+                  <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
+                </svg>
+                Ajouter un point personnalisé
+              </button>
+            )}
 
-          {!isHost && (
-            <button
-              className="trip-leave-btn"
-              onClick={() => setConfirmLeave(true)}
-              disabled={leaving}
-            >
-              {leaving ? (
-                <div className="trip-mini-spinner trip-mini-spinner--red" />
-              ) : (
-                <>
-                  <svg viewBox="0 0 24 24" fill="currentColor" width="15" height="15">
-                    <path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z" />
-                  </svg>
-                  Quitter ce trajet
-                </>
-              )}
-            </button>
-          )}
+            {isHost && (
+              <button
+                className="trip-delete-btn"
+                onClick={() => setConfirmingDeleteTrip(true)}
+                disabled={deleting}
+              >
+                {deleting ? (
+                  <div className="trip-mini-spinner trip-mini-spinner--red" />
+                ) : (
+                  <>
+                    <svg viewBox="0 0 24 24" fill="currentColor" width="15" height="15">
+                      <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
+                    </svg>
+                    Supprimer ce trajet
+                  </>
+                )}
+              </button>
+            )}
+
+            {!isHost && (
+              <button
+                className="trip-leave-btn"
+                onClick={() => setConfirmLeave(true)}
+                disabled={leaving}
+              >
+                {leaving ? (
+                  <div className="trip-mini-spinner trip-mini-spinner--red" />
+                ) : (
+                  <>
+                    <svg viewBox="0 0 24 24" fill="currentColor" width="15" height="15">
+                      <path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z" />
+                    </svg>
+                    Quitter ce trajet
+                  </>
+                )}
+              </button>
+            )}
+          </div>
         </div>
       )}
 

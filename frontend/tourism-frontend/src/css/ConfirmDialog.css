@@ -1,7 +1,7 @@
 .cfd-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.45);
+  background: rgba(36, 27, 46, 0.45);
   backdrop-filter: blur(3px);
   z-index: 120;
 }
@@ -16,7 +16,7 @@
   border-radius: 18px;
   z-index: 121;
   padding: 1.4rem 1.3rem 1.2rem;
-  box-shadow: 0 12px 40px rgba(15, 23, 42, 0.25);
+  box-shadow: 0 12px 40px rgba(36, 27, 46, 0.28);
   text-align: center;
 }
 
@@ -36,13 +36,13 @@
   margin: 0 0 0.4rem;
   font-size: 1rem;
   font-weight: 700;
-  color: #1e3a5f;
+  color: #241b2e;
 }
 
 .cfd-message {
   margin: 0 0 1.1rem;
   font-size: 0.85rem;
-  color: #64748b;
+  color: #82788f;
   line-height: 1.4;
 }
 
@@ -54,8 +54,8 @@
 .cfd-cancel-btn {
   flex: 1;
   padding: 0.6rem;
-  background: #f1f5f9;
-  color: #475569;
+  background: #f0ecf1;
+  color: #525174;
   border: none;
   border-radius: 10px;
   font-size: 0.88rem;
@@ -64,7 +64,7 @@
   transition: background 0.15s;
 }
 
-.cfd-cancel-btn:hover:not(:disabled) { background: #e2e8f0; }
+.cfd-cancel-btn:hover:not(:disabled) { background: #e7e1e8; }
 .cfd-cancel-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
 .cfd-confirm-btn {

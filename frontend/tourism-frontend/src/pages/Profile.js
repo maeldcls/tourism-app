@@ -267,20 +267,6 @@ export default function Profile() {
           )}
         </div>
 
-        {user.is_admin && (
-          <>
-            <button className="profile-admin-btn" onClick={() => navigate('/admin/comments')}>
-              Modération des commentaires
-            </button>
-            <button className="profile-admin-btn" onClick={() => navigate('/admin/tags')}>
-              Gestion des tags
-            </button>
-            <button className="profile-admin-btn" onClick={() => navigate('/admin/photos')}>
-              Modération des photos
-            </button>
-          </>
-        )}
-
         <button className="profile-logout-btn" onClick={handleLogout}>
           Se déconnecter
         </button>

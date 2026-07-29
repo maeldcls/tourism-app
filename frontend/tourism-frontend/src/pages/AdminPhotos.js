@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import AdminNav from '../components/AdminNav';
 import API_URL from '../config';
 import '../css/AdminComments.css';
 import '../css/AdminPhotos.css';
@@ -74,6 +75,7 @@ export default function AdminPhotos() {
 
   return (
     <div className="admin-page">
+      <AdminNav />
       <h1 className="admin-title">Modération des photos</h1>
       <p className="admin-subtitle">Photos proposées par les utilisateurs pour enrichir les fiches monuments.</p>
 

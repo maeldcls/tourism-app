@@ -6,12 +6,13 @@
 
 .rating-score {
   flex: 1;
-  background: #fff;
+  background: var(--monu-surface);
   border-radius: 12px;
   padding: 0.7rem 0.85rem;
   display: flex;
   flex-direction: column;
   gap: 0.15rem;
+  box-shadow: 0 2px 10px rgba(81, 59, 86, 0.06);
 }
 
 .rating-score--empty {
@@ -35,7 +36,7 @@
 .rating-score-text {
   font-size: 0.85rem;
   font-weight: 700;
-  color: var(--monu-accent-dark);
+  color: var(--monu-teal-dark);
 }
 
 .rating-score--empty .rating-score-text {
@@ -60,9 +61,9 @@
   justify-content: center;
   gap: 0.4rem;
   padding: 0.65rem 0.5rem;
-  border: 1.5px solid #e3e1d4;
+  border: 1.5px solid var(--monu-border);
   border-radius: 999px;
-  background: #fff;
+  background: var(--monu-surface);
   color: var(--monu-ink);
   font-size: 0.82rem;
   font-weight: 700;

@@ -1,15 +1,26 @@
 .travel-page {
-  --travel-cream: #f4f2e8;
-  --travel-accent: #c3d62e;
-  --travel-accent-dark: #a8b826;
-  --travel-ink: #1c1c1c;
-  --travel-muted: #8b8b7a;
+  --travel-bg-top: #eef8ea;
+  --travel-bg-bottom: #f5eff5;
+  --travel-surface: #ffffff;
+  --travel-ink: #241b2e;
+  --travel-muted: #82788f;
+  --travel-border: #e7e1e8;
+
+  --travel-lime: #bce784;
+  --travel-mint: #5dd39e;
+  --travel-mint-dark: #2fa876;
+  --travel-teal: #348aa7;
+  --travel-teal-dark: #276a80;
+  --travel-slate: #525174;
+  --travel-plum: #513b56;
+
+  --travel-gradient: linear-gradient(135deg, var(--travel-mint), var(--travel-teal));
 
   padding: 1.5rem 1rem 6rem;
   max-width: 600px;
   margin: 0 auto;
   min-height: 100dvh;
-  background: var(--travel-cream);
+  background: linear-gradient(180deg, var(--travel-bg-top) 0%, var(--travel-bg-bottom) 100%);
 }
 
 /* ── Header ─────────────────────────────────────────────────────────────────── */
@@ -23,7 +34,7 @@
 
 .travel-title {
   margin: 0 0 0.2rem;
-  font-size: 1.6rem;
+  font-size: 1.7rem;
   font-weight: 800;
   color: var(--travel-ink);
   letter-spacing: -0.02em;
@@ -39,31 +50,36 @@
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  padding: 0.55rem 1rem;
-  background: var(--travel-accent);
-  color: var(--travel-ink);
+  padding: 0.6rem 1.1rem;
+  background: var(--travel-gradient);
+  color: #fff;
   border: none;
   border-radius: 999px;
   font-size: 0.9rem;
   font-weight: 700;
   cursor: pointer;
   flex-shrink: 0;
-  transition: background 0.15s;
+  box-shadow: 0 4px 14px rgba(52, 138, 167, 0.35);
+  transition: box-shadow 0.15s, transform 0.15s, filter 0.15s;
 }
 
-.travel-new-btn:hover { background: var(--travel-accent-dark); }
+.travel-new-btn:hover {
+  filter: brightness(1.06);
+  box-shadow: 0 6px 18px rgba(52, 138, 167, 0.45);
+  transform: translateY(-1px);
+}
 
 /* ── Create panel ───────────────────────────────────────────────────────────── */
 
 .travel-create-panel {
-  background: #fff;
+  background: var(--travel-surface);
   border-radius: 14px;
   padding: 1rem;
   margin-bottom: 1rem;
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  box-shadow: 0 2px 10px rgba(28, 28, 28, 0.06);
+  box-shadow: 0 2px 10px rgba(81, 59, 86, 0.08);
   animation: panel-fade-in 0.18s ease;
 }
 
@@ -74,11 +90,11 @@
 
 .travel-create-input {
   padding: 0.65rem 0.85rem;
-  border: 1.5px solid #e5e3d6;
+  border: 1.5px solid var(--travel-border);
   border-radius: 10px;
   font-size: 0.95rem;
   color: var(--travel-ink);
-  background: var(--travel-cream);
+  background: var(--travel-bg-top);
   outline: none;
   transition: border-color 0.15s;
   width: 100%;
@@ -86,7 +102,7 @@
 }
 
 .travel-create-input::placeholder { color: var(--travel-muted); }
-.travel-create-input:focus { border-color: var(--travel-accent-dark); background: #fff; }
+.travel-create-input:focus { border-color: var(--travel-teal); background: #fff; }
 
 .travel-create-actions {
   display: flex;
@@ -99,23 +115,23 @@
   align-items: center;
   justify-content: center;
   padding: 0.6rem;
-  background: var(--travel-accent);
-  color: var(--travel-ink);
+  background: var(--travel-gradient);
+  color: #fff;
   border: none;
   border-radius: 9px;
   font-size: 0.9rem;
   font-weight: 700;
   cursor: pointer;
-  transition: background 0.15s;
+  transition: filter 0.15s;
   min-height: 38px;
 }
 
-.travel-create-confirm:hover:not(:disabled) { background: var(--travel-accent-dark); }
+.travel-create-confirm:hover:not(:disabled) { filter: brightness(1.06); }
 .travel-create-confirm:disabled { opacity: 0.6; cursor: not-allowed; }
 
 .travel-create-cancel {
   padding: 0.6rem 1rem;
-  background: var(--travel-cream);
+  background: var(--travel-bg-top);
   color: var(--travel-muted);
   border: none;
   border-radius: 9px;
@@ -125,7 +141,7 @@
   transition: background 0.15s;
 }
 
-.travel-create-cancel:hover { background: #e9e7da; }
+.travel-create-cancel:hover { background: #e6ecdf; }
 
 /* ── Loading / empty ────────────────────────────────────────────────────────── */
 
@@ -142,8 +158,8 @@
 .travel-spinner {
   width: 28px;
   height: 28px;
-  border: 3px solid #e5e3d6;
-  border-top-color: var(--travel-accent-dark);
+  border: 3px solid var(--travel-border);
+  border-top-color: var(--travel-teal);
   border-radius: 50%;
   animation: travel-spin 0.7s linear infinite;
 }
@@ -158,7 +174,7 @@
   align-items: center;
   gap: 0.5rem;
   padding: 3.5rem 1rem;
-  color: #d6d4c4;
+  color: var(--travel-mint);
   text-align: center;
 }
 
@@ -171,7 +187,7 @@
 
 .travel-empty span {
   font-size: 0.85rem;
-  color: #c8c6b6;
+  color: #b7aec3;
 }
 
 /* ── Trip list ──────────────────────────────────────────────────────────────── */
@@ -179,22 +195,24 @@
 .travel-list {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.85rem;
 }
 
 /* ── Trip card ──────────────────────────────────────────────────────────────── */
 
 .trip-card {
-  background: #fff;
+  --trip-accent: var(--travel-teal);
+  background: var(--travel-surface);
   border-radius: 18px;
-  box-shadow: 0 2px 10px rgba(28, 28, 28, 0.07);
+  border-left: 4px solid var(--trip-accent);
+  box-shadow: 0 2px 10px rgba(81, 59, 86, 0.08);
   overflow: hidden;
   transition: box-shadow 0.2s;
   padding: 0.4rem 0 0;
 }
 
 .trip-card--open {
-  box-shadow: 0 4px 18px rgba(28, 28, 28, 0.12);
+  box-shadow: 0 6px 22px rgba(81, 59, 86, 0.14);
 }
 
 .trip-pill {
@@ -224,7 +242,7 @@
   flex: 1;
   height: 6px;
   border-radius: 3px;
-  background: var(--travel-cream);
+  background: var(--travel-bg-top);
   overflow: hidden;
   display: block;
 }
@@ -232,7 +250,7 @@
 .trip-pill-progress-fill {
   display: block;
   height: 100%;
-  background: linear-gradient(90deg, var(--travel-accent-dark), var(--travel-accent));
+  background: var(--travel-gradient);
   border-radius: 3px;
   transition: width 0.4s ease;
 }
@@ -278,8 +296,8 @@
 .trip-role-badge {
   font-size: 0.7rem;
   font-weight: 600;
-  color: #1565c0;
-  background: #e3f2fd;
+  color: var(--travel-teal-dark);
+  background: rgba(52, 138, 167, 0.12);
   padding: 0.1rem 0.5rem;
   border-radius: 999px;
 }
@@ -287,7 +305,7 @@
 /* ── Trip body ──────────────────────────────────────────────────────────────── */
 
 .trip-body {
-  border-top: 1px solid var(--travel-cream);
+  border-top: 1px solid var(--travel-border);
   padding: 0.85rem 1rem 1rem;
   animation: body-fade-in 0.18s ease;
 }
@@ -317,7 +335,7 @@
   align-items: center;
   gap: 0.35rem;
   padding: 0.2rem 0.55rem 0.2rem 0.2rem;
-  background: var(--travel-cream);
+  background: var(--travel-bg-top);
   border-radius: 999px;
 }
 
@@ -326,7 +344,7 @@
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #43a047, #1e88e5);
+  background: var(--travel-gradient);
   color: #fff;
   font-weight: 700;
   font-size: 0.65rem;
@@ -362,7 +380,7 @@
   gap: 0.35rem;
   padding: 0.3rem 0.65rem;
   background: none;
-  border: 1.5px solid #e5e3d6;
+  border: 1.5px solid var(--travel-border);
   border-radius: 999px;
   color: var(--travel-muted);
   font-size: 0.75rem;
@@ -371,14 +389,14 @@
   transition: border-color 0.15s, color 0.15s;
 }
 
-.trip-settings-btn:hover { border-color: var(--travel-accent-dark); color: var(--travel-ink); }
+.trip-settings-btn:hover { border-color: var(--travel-teal); color: var(--travel-ink); }
 
 .trip-settings-members {
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
   padding-top: 0.5rem;
-  border-top: 1px solid #e5e3d6;
+  border-top: 1px solid var(--travel-border);
 }
 
 .trip-settings-members-label {
@@ -426,7 +444,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.65rem;
-  background: var(--travel-cream);
+  background: rgba(82, 81, 116, 0.06);
   border-radius: 12px;
   padding: 0.75rem 0.9rem;
   margin-bottom: 0.85rem;
@@ -445,7 +463,7 @@
 .trip-settings-toggle input {
   width: 16px;
   height: 16px;
-  accent-color: var(--travel-accent-dark);
+  accent-color: var(--travel-teal);
   cursor: pointer;
 }
 
@@ -481,7 +499,7 @@
   font-weight: 700;
   line-height: 1;
   cursor: pointer;
-  box-shadow: 0 1px 4px rgba(28, 28, 28, 0.12);
+  box-shadow: 0 1px 4px rgba(81, 59, 86, 0.18);
 }
 
 .trip-daycount-stepper button:disabled { opacity: 0.4; cursor: not-allowed; }
@@ -502,18 +520,18 @@
 }
 
 .trip-day-empty {
-  border: 1.5px dashed #d8d6c4;
+  border: 1.5px dashed var(--travel-border);
   border-radius: 12px;
   padding: 0.75rem;
   margin-bottom: 0.85rem;
   text-align: center;
   font-size: 0.78rem;
-  color: #b8b6a4;
+  color: #b7aec3;
 }
 
 .trip-timeline--over .trip-day-empty {
-  border-color: var(--travel-accent-dark);
-  color: var(--travel-accent-dark);
+  border-color: var(--travel-teal);
+  color: var(--travel-teal-dark);
 }
 
 /* ── Timeline ───────────────────────────────────────────────────────────────── */
@@ -541,8 +559,8 @@
   width: 2px;
   flex: 1;
   min-height: 10px;
-  background: #1c1c1c;
-  opacity: 0.15;
+  background: var(--travel-ink);
+  opacity: 0.13;
 }
 
 .trip-timeline-line--hidden {
@@ -551,7 +569,7 @@
 
 .trip-timeline-line--connected {
   width: 3px;
-  background: var(--travel-accent-dark);
+  background: var(--travel-mint);
   opacity: 1;
 }
 
@@ -577,7 +595,7 @@
   width: 26px;
   height: 26px;
   border-radius: 50%;
-  border: 2px solid #e5e3d6;
+  border: 2px solid var(--travel-border);
   background: #fff;
   color: transparent;
   display: flex;
@@ -590,7 +608,7 @@
 }
 
 .trip-node:hover {
-  border-color: var(--travel-accent-dark);
+  border-color: var(--travel-teal);
 }
 
 .trip-node:disabled {
@@ -599,8 +617,8 @@
 }
 
 .trip-node--done {
-  background: var(--travel-accent-dark);
-  border-color: var(--travel-accent-dark);
+  background: var(--travel-gradient);
+  border-color: transparent;
   color: #fff;
 }
 
@@ -613,7 +631,7 @@
   gap: 0.65rem;
   padding: 0.5rem;
   border-radius: 14px;
-  background: var(--travel-cream);
+  background: var(--travel-bg-top);
   margin-bottom: 0.65rem;
   min-width: 0;
   transition: background 0.15s;
@@ -624,18 +642,18 @@
 }
 
 .trip-monument-card--visited {
-  background: rgba(195, 214, 46, 0.18);
+  background: rgba(93, 211, 158, 0.18);
 }
 
 .trip-monument-card--dragging {
   cursor: grabbing;
-  box-shadow: 0 8px 22px rgba(28, 28, 28, 0.22);
+  box-shadow: 0 8px 22px rgba(81, 59, 86, 0.24);
   background: #fff;
 }
 
 .trip-drag-grip {
   flex-shrink: 0;
-  color: #c8c6b6;
+  color: #c6bdd0;
   pointer-events: none;
 }
 
@@ -645,7 +663,7 @@
   border-radius: 10px;
   overflow: hidden;
   flex-shrink: 0;
-  background: #e5e3d6;
+  background: var(--travel-border);
 }
 
 .trip-thumb img {
@@ -656,7 +674,7 @@
 }
 
 .trip-thumb--skeleton {
-  background: linear-gradient(90deg, #e5e3d6 25%, #d8d6c4 50%, #e5e3d6 75%);
+  background: linear-gradient(90deg, var(--travel-border) 25%, #dcd5df 50%, var(--travel-border) 75%);
   background-size: 200% 100%;
   animation: travel-skeleton-shimmer 1.4s infinite;
 }
@@ -670,7 +688,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #b8b6a4;
+  color: #b7aec3;
 }
 
 .trip-thumb--point {
@@ -723,8 +741,8 @@
 }
 
 .trip-action-btn:hover {
-  color: #1e3a5f;
-  background: rgba(30, 58, 95, 0.08);
+  color: var(--travel-teal-dark);
+  background: rgba(52, 138, 167, 0.1);
 }
 
 .trip-remove-btn {
@@ -750,67 +768,78 @@
 
 .trip-remove-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-/* ── Delete trip ────────────────────────────────────────────────────────────── */
+/* ── Actions du trajet ──────────────────────────────────────────────────────── */
+
+.trip-actions-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.2rem;
+}
+
+.trip-actions-row > button {
+  flex: 1 1 auto;
+  min-width: 150px;
+  margin-bottom: 0;
+  justify-content: center;
+}
 
 .trip-map-btn {
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  padding: 0.45rem 0.75rem;
-  margin-bottom: 0.6rem;
+  padding: 0.5rem 0.75rem;
   background: none;
-  border: 1.5px solid #1e3a5f;
+  border: 1.5px solid var(--travel-teal);
   border-radius: 8px;
-  color: #1e3a5f;
+  color: var(--travel-teal-dark);
   font-size: 0.8rem;
   font-weight: 600;
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s;
 }
 
-.trip-map-btn:hover { background: #e8eef5; }
+.trip-map-btn:hover { background: rgba(52, 138, 167, 0.08); }
 
 .trip-share-btn {
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  padding: 0.45rem 0.75rem;
-  margin-bottom: 0.6rem;
+  padding: 0.5rem 0.75rem;
   background: none;
-  border: 1.5px solid #43a047;
+  border: 1.5px solid var(--travel-mint-dark);
   border-radius: 8px;
-  color: #2e7d32;
+  color: var(--travel-mint-dark);
   font-size: 0.8rem;
   font-weight: 600;
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s;
 }
 
-.trip-share-btn:hover { background: #eaf6ea; }
+.trip-share-btn:hover { background: rgba(93, 211, 158, 0.1); }
 
 .trip-addpoint-btn {
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  padding: 0.45rem 0.75rem;
-  margin-bottom: 0.6rem;
+  padding: 0.5rem 0.75rem;
   background: none;
-  border: 1.5px solid #c87941;
+  border: 1.5px solid var(--travel-slate);
   border-radius: 8px;
-  color: #c87941;
+  color: var(--travel-slate);
   font-size: 0.8rem;
   font-weight: 600;
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s;
 }
 
-.trip-addpoint-btn:hover { background: #fdf1e7; }
+.trip-addpoint-btn:hover { background: rgba(82, 81, 116, 0.08); }
 
 .trip-delete-btn {
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  padding: 0.45rem 0.75rem;
+  padding: 0.5rem 0.75rem;
   background: none;
   border: 1.5px solid #e9c2c0;
   border-radius: 8px;
@@ -832,7 +861,7 @@
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  padding: 0.45rem 0.75rem;
+  padding: 0.5rem 0.75rem;
   background: none;
   border: 1.5px solid #e9c2c0;
   border-radius: 8px;
@@ -854,7 +883,7 @@
 .trip-mini-spinner {
   width: 14px;
   height: 14px;
-  border: 2px solid #e5e3d6;
+  border: 2px solid var(--travel-border);
   border-top-color: var(--travel-muted);
   border-radius: 50%;
   animation: travel-spin 0.7s linear infinite;

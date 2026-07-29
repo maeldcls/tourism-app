@@ -1,7 +1,7 @@
 .apd-hint {
   margin: 0 0 1rem;
   font-size: 0.85rem;
-  color: #64748b;
+  color: #82788f;
   line-height: 1.4;
 }
 
@@ -12,10 +12,10 @@
   gap: 0.5rem;
   width: 100%;
   padding: 1.1rem;
-  border: 1.5px dashed #cbd5e1;
+  border: 1.5px dashed #d9d2db;
   border-radius: 14px;
-  background: #f8fafc;
-  color: #1e3a5f;
+  background: #f5f2f6;
+  color: #241b2e;
   font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
@@ -23,8 +23,8 @@
 }
 
 .apd-picker:hover:not(:disabled) {
-  border-color: #c87941;
-  background: #fffbf7;
+  border-color: #348aa7;
+  background: rgba(52, 138, 167, 0.06);
 }
 
 .apd-picker:disabled { opacity: 0.6; cursor: not-allowed; }
@@ -59,7 +59,7 @@
   height: 20px;
   border-radius: 50%;
   border: none;
-  background: rgba(15, 23, 42, 0.65);
+  background: rgba(36, 27, 46, 0.65);
   color: #fff;
   font-size: 0.65rem;
   line-height: 1;
@@ -74,9 +74,9 @@
   width: 84px;
   height: 84px;
   border-radius: 12px;
-  border: 1.5px dashed #cbd5e1;
-  background: #f8fafc;
-  color: #94a3b8;
+  border: 1.5px dashed #d9d2db;
+  background: #f5f2f6;
+  color: #82788f;
   font-size: 1.5rem;
   cursor: pointer;
   flex-shrink: 0;
@@ -84,8 +84,8 @@
 }
 
 .apd-add-more:hover:not(:disabled) {
-  border-color: #c87941;
-  color: #c87941;
+  border-color: #348aa7;
+  color: #348aa7;
 }
 
 .apd-submit {

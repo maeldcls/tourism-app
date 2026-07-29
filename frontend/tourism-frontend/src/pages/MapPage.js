@@ -95,16 +95,28 @@ function timeAgoLabel(iso) {
   return `il y a ${Math.round(seconds / 60)} min`;
 }
 
+// Monuments et points personnalisés d'un trajet partagent un même espace
+// d'`order` (voir PATCH /trips/{id}/reorder côté API) : on les fusionne et on
+// trie sur ce champ commun pour retrouver l'ordre réel de la timeline.
+function orderedTripStops(trip) {
+  const monuments = trip.monuments
+    .filter(m => m.latitude != null && m.longitude != null)
+    .map(m => ({ ...m, kind: 'monument' }));
+  const customPoints = (trip.custom_points || [])
+    .filter(p => p.latitude != null && p.longitude != null)
+    .map(p => ({ ...p, kind: 'custom' }));
+  return [...monuments, ...customPoints].sort((a, b) => a.order - b.order);
+}
+
 // ── Couche affichant les marqueurs + le tracé d'un trajet sélectionné ─────────
 function TripRouteLayer({ trip, routeCoords, onSelect }) {
   const map = useMap();
   const fittedRef = useRef(null);
+  const ordered = trip ? orderedTripStops(trip) : [];
 
   useEffect(() => {
     if (!trip || fittedRef.current === trip.id) return;
-    const pts = trip.monuments
-      .filter(m => m.latitude != null && m.longitude != null)
-      .map(m => [m.latitude, m.longitude]);
+    const pts = orderedTripStops(trip).map(it => [it.latitude, it.longitude]);
     if (pts.length === 0) return;
     fittedRef.current = trip.id;
     if (pts.length === 1) {
@@ -116,23 +128,29 @@ function TripRouteLayer({ trip, routeCoords, onSelect }) {
 
   if (!trip) return null;
 
-  // Numéroté selon l'ordre du trajet (celui utilisé pour le tracé ORS) — les
-  // monuments sans coordonnées sont exclus pour ne pas décaler la numérotation.
-  const ordered = trip.monuments.filter(m => m.latitude != null && m.longitude != null);
-
   return (
     <>
       {routeCoords.length > 1 && (
         <Polyline positions={routeCoords} pathOptions={{ color: TRIP_PENDING_COLOR, weight: 4, opacity: 0.85 }} />
       )}
-      {ordered.map((m, i) => (
-        <Marker
-          key={m.monument_id}
-          position={[m.latitude, m.longitude]}
-          icon={makePointIcon(m.icon, m.color, { visited: m.is_visited, orderNumber: i + 1 })}
-          eventHandlers={{ click: () => onSelect(m) }}
-        />
-      ))}
+      {ordered.map((it, i) => {
+        const icon = makePointIcon(it.icon, it.color, { visited: it.is_visited, orderNumber: i + 1 });
+        if (it.kind === 'monument') {
+          return (
+            <Marker
+              key={`m-${it.monument_id}`}
+              position={[it.latitude, it.longitude]}
+              icon={icon}
+              eventHandlers={{ click: () => onSelect(it) }}
+            />
+          );
+        }
+        return (
+          <Marker key={`c-${it.custom_point_id}`} position={[it.latitude, it.longitude]} icon={icon}>
+            <Popup>{it.name}</Popup>
+          </Marker>
+        );
+      })}
     </>
   );
 }
@@ -228,7 +246,6 @@ export default function MapPage() {
 
   const [pois, setPois]               = useState([]);
   const [userPos, setUserPos]         = useState(null);
-  const [activeCategories, setActiveCategories] = useState(Object.keys(CATEGORIES));
   const [loading, setLoading]         = useState(false);
   const [selected, setSelected]       = useState(null);
   const [mapView, setMapView]         = useState(null); // { zoom, bounds }
@@ -260,6 +277,14 @@ export default function MapPage() {
 
   useEffect(() => { sharingRef.current = sharingLocation; }, [sharingLocation]);
   useEffect(() => { tripIdRef.current = trip?.id ?? null; }, [trip]);
+
+  // Page plein écran type "app" : la carte occupe exactement la hauteur visible,
+  // sans le padding-bottom global réservé pour la navbar flottante (qui flotte
+  // de toute façon au-dessus de la carte) — évite un léger scroll de page en trop.
+  useEffect(() => {
+    document.body.classList.add('mappage-body-lock');
+    return () => document.body.classList.remove('mappage-body-lock');
+  }, []);
 
   const pushLocation = useCallback((tripId, lat, lng) => {
     if (!token) return;
@@ -536,23 +561,11 @@ export default function MapPage() {
     if (!mapView || mapView.zoom < MIN_ZOOM) return [];
     const { south, west, north, east } = mapView.bounds;
     return pois.filter(p =>
-      activeCategories.includes(p.category) &&
       !coveredMonumentIds.has(p.id) &&
       p.latitude  >= south && p.latitude  <= north &&
       p.longitude >= west  && p.longitude <= east
     );
-  }, [pois, activeCategories, mapView, coveredMonumentIds]);
-
-  const presentCategories = useMemo(
-    () => [...new Set(pois.map(p => p.category))],
-    [pois]
-  );
-
-  function toggleCategory(key) {
-    setActiveCategories(prev =>
-      prev.includes(key) ? prev.filter(c => c !== key) : [...prev, key]
-    );
-  }
+  }, [pois, mapView, coveredMonumentIds]);
 
   function selectPoi(poi) {
     setSelected({ ...poi, _cat: getCategory(poi.category) });
@@ -669,27 +682,6 @@ export default function MapPage() {
         onSelectMonument={handleSelectMonument}
         onSelectPlace={handleSelectPlace}
       />
-
-      {/* Filtres */}
-      {presentCategories.length > 1 && (
-        <div className="mappage-filters">
-          {presentCategories.map(key => {
-            const cat    = getCategory(key);
-            const active = activeCategories.includes(key);
-            return (
-              <button
-                key={key}
-                className={`mappage-filter${active ? ' mappage-filter--active' : ''}`}
-                style={{ '--cat-color': cat.color }}
-                onClick={() => toggleCategory(key)}
-              >
-                <span className="mappage-filter-dot" />
-                {cat.label}
-              </button>
-            );
-          })}
-        </div>
-      )}
 
       {loading && <div className="mappage-loading">Chargement…</div>}
 

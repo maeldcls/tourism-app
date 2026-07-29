@@ -9,9 +9,9 @@
   resize: vertical;
   min-height: 44px;
   padding: 0.65rem 0.8rem;
-  border: 1.5px solid #e3e1d4;
+  border: 1.5px solid var(--monu-border);
   border-radius: 12px;
-  background: #fff;
+  background: var(--monu-surface);
   font-family: inherit;
   font-size: 0.88rem;
   color: var(--monu-ink);
@@ -20,7 +20,7 @@
 }
 
 .monu-comments-input:focus {
-  border-color: var(--monu-accent);
+  border-color: var(--monu-teal);
 }
 
 .monu-comments-submit {
@@ -28,16 +28,16 @@
   padding: 0.55rem 1.2rem;
   border: none;
   border-radius: 999px;
-  background: var(--monu-accent);
-  color: var(--monu-ink);
+  background: var(--monu-gradient);
+  color: #fff;
   font-size: 0.85rem;
   font-weight: 700;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: filter 0.2s;
 }
 
 .monu-comments-submit:hover:not(:disabled) {
-  background: var(--monu-accent-dark);
+  filter: brightness(1.06);
 }
 
 .monu-comments-submit:disabled {
@@ -88,9 +88,10 @@
 }
 
 .monu-comments-item {
-  background: #fff;
+  background: var(--monu-surface);
   border-radius: 12px;
   padding: 0.7rem 0.85rem;
+  box-shadow: 0 2px 10px rgba(81, 59, 86, 0.06);
 }
 
 .monu-comments-item-head {
@@ -116,7 +117,7 @@
 .monu-comments-body {
   margin: 0;
   font-size: 0.85rem;
-  color: #5c5c50;
+  color: var(--monu-ink);
   line-height: 1.5;
   white-space: pre-wrap;
   word-break: break-word;

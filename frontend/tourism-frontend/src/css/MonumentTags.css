@@ -13,9 +13,9 @@
   border-radius: 999px;
   font-size: 0.82rem;
   font-weight: 600;
-  background: #fff;
+  background: var(--monu-surface);
   color: var(--monu-ink);
-  border: 1.5px solid #e3e1d4;
+  border: 1.5px solid var(--monu-border);
 }
 
 .monu-tag-chip--voted {
@@ -23,15 +23,15 @@
 }
 
 .monu-tag-chip--positive.monu-tag-chip--voted {
-  background: #e8f5e9;
-  border-color: #2e7d32;
-  color: #2e7d32;
+  background: rgba(93, 211, 158, 0.18);
+  border-color: var(--monu-mint-dark);
+  color: var(--monu-mint-dark);
 }
 
 .monu-tag-chip--neutral.monu-tag-chip--voted {
-  background: #f1f5f9;
-  border-color: #64748b;
-  color: #475569;
+  background: rgba(82, 81, 116, 0.12);
+  border-color: var(--monu-slate);
+  color: var(--monu-slate);
 }
 
 .monu-tag-chip--negative.monu-tag-chip--voted {
@@ -54,15 +54,15 @@
   height: 32px;
   border-radius: 50%;
   border: none;
-  background: var(--monu-accent);
-  color: var(--monu-ink);
+  background: var(--monu-gradient);
+  color: #fff;
   cursor: pointer;
-  transition: background 0.15s;
+  transition: filter 0.15s;
   flex-shrink: 0;
 }
 
 .monu-tag-add-btn:hover {
-  background: var(--monu-accent-dark);
+  filter: brightness(1.06);
 }
 
 .monu-tags-empty {

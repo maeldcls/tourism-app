@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import AdminNav from '../components/AdminNav';
 import API_URL from '../config';
 import '../css/AdminTags.css';
 
@@ -106,6 +107,7 @@ export default function AdminTags() {
 
   return (
     <div className="admin-page">
+      <AdminNav />
       <h1 className="admin-title">Gestion des tags</h1>
       <p className="admin-subtitle">Tags que les utilisateurs peuvent assigner aux monuments.</p>
 

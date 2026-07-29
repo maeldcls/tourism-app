@@ -1,73 +1,48 @@
 .mappage {
+  --map-mint: #5dd39e;
+  --map-mint-dark: #2fa876;
+  --map-teal: #348aa7;
+  --map-teal-dark: #276a80;
+  --map-slate: #525174;
+  --map-plum: #513b56;
+  --map-ink: #241b2e;
+  --map-muted: #82788f;
+  --map-border: #e7e1e8;
+  --map-gradient: linear-gradient(135deg, var(--map-mint), var(--map-teal));
+
   display: flex;
   flex-direction: column;
   height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
   position: relative;
+}
+
+/* La navbar flottante recouvre déjà le bas de l'écran : on retire le padding
+   global réservé pour elle (voir Navbar.css) tant que cette page est montée,
+   sinon la carte (100dvh) + ce padding dépassent la hauteur visible et la
+   page entière devient scrollable de quelques dizaines de pixels sur mobile. */
+body.mappage-body-lock {
+  padding-bottom: 0;
+  overflow: hidden;
 }
 
 .mappage-map {
   flex: 1;
   width: 100%;
+  min-height: 0;
   z-index: 0;
 }
 
-/* ── Filtres catégories ─────────────────────────────────────────── */
-.mappage-filters {
-  display: flex;
-  gap: 0.5rem;
-  padding: 0.6rem 0.75rem;
-  overflow-x: auto;
-  background: #fff;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-  z-index: 10;
-  scrollbar-width: none;
-}
-
-.mappage-filters::-webkit-scrollbar {
-  display: none;
-}
-
-.mappage-filter {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.35rem 0.75rem;
-  border-radius: 999px;
-  border: 1.5px solid var(--cat-color);
-  background: transparent;
-  color: #455a64;
-  font-size: 0.78rem;
-  font-weight: 600;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: background 0.15s, color 0.15s;
-}
-
-.mappage-filter--active {
-  background: var(--cat-color);
-  color: #fff;
-}
-
-.mappage-filter-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--cat-color);
-  flex-shrink: 0;
-}
-
-.mappage-filter--active .mappage-filter-dot {
-  background: #fff;
-}
-
-/* ── Bandeau itinéraire ──────────────────────────────────────────── */
+/* ── Bandeau itinéraire / ajout de point ────────────────────────── */
 .mappage-trip-banner {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
-  padding: 0.5rem 0.9rem;
-  background: #1e3a5f;
+  padding: 0.55rem 0.9rem;
+  margin-top: 64px; /* passe sous la barre de recherche flottante */
+  background: var(--map-teal-dark);
   color: #fff;
   font-size: 0.82rem;
   font-weight: 600;
@@ -88,7 +63,7 @@
 .mappage-trip-banner button:hover { opacity: 1; }
 
 .mappage-trip-banner--add {
-  background: #c87941;
+  background: var(--map-plum);
 }
 
 .mappage-trip-banner-actions {
@@ -104,24 +79,24 @@
   width: 26px;
   height: 26px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.16);
   opacity: 1;
 }
 
-.mappage-share-btn:hover { background: rgba(255, 255, 255, 0.22); }
+.mappage-share-btn:hover { background: rgba(255, 255, 255, 0.28); }
 
 .mappage-share-btn--active {
-  background: #43a047;
+  background: var(--map-mint-dark);
 }
 
 .mappage-member-marker {
   width: 30px;
   height: 30px;
   border-radius: 50%;
-  background: #1e88e5;
+  background: var(--map-teal);
   color: #fff;
   border: 2.5px solid #fff;
-  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 1px 6px rgba(36, 27, 46, 0.4);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -146,14 +121,14 @@
   position: absolute;
   bottom: 72px;
   right: 12px;
-  background: rgba(255,255,255,0.92);
+  background: rgba(255, 255, 255, 0.92);
   backdrop-filter: blur(4px);
   border-radius: 8px;
   padding: 0.3rem 0.65rem;
   font-size: 0.75rem;
-  color: #455a64;
+  color: var(--map-ink);
   font-weight: 600;
-  box-shadow: 0 1px 6px rgba(0,0,0,0.12);
+  box-shadow: 0 1px 6px rgba(36, 27, 46, 0.14);
   z-index: 10;
   pointer-events: none;
 }
@@ -168,7 +143,7 @@
   border-radius: 50%;
   border: none;
   background: #fff;
-  box-shadow: 0 1px 6px rgba(0,0,0,0.25);
+  box-shadow: 0 1px 6px rgba(36, 27, 46, 0.25);
   font-size: 1.1rem;
   display: flex;
   align-items: center;
@@ -186,9 +161,9 @@
   height: 40px;
   border-radius: 50%;
   border: none;
-  background: #c87941;
+  background: var(--map-gradient);
   color: #fff;
-  box-shadow: 0 1px 6px rgba(0,0,0,0.25);
+  box-shadow: 0 2px 10px rgba(52, 138, 167, 0.4);
   font-size: 1.5rem;
   line-height: 1;
   display: flex;
@@ -196,10 +171,10 @@
   justify-content: center;
   cursor: pointer;
   z-index: 10;
-  transition: background 0.15s, transform 0.15s;
+  transition: filter 0.15s;
 }
 
-.mappage-addpoint-btn:hover { background: #b06a35; }
+.mappage-addpoint-btn:hover { filter: brightness(1.06); }
 
 .mappage-addpoint-btn--active {
   background: #dc2626;
@@ -215,8 +190,8 @@
   border-radius: 50%;
   border: none;
   background: #fff;
-  color: #1e3a5f;
-  box-shadow: 0 1px 6px rgba(0,0,0,0.25);
+  color: var(--map-teal-dark);
+  box-shadow: 0 1px 6px rgba(36, 27, 46, 0.25);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -228,10 +203,10 @@
 .mappage-user-dot {
   width: 16px;
   height: 16px;
-  background: #2196f3;
+  background: var(--map-teal);
   border: 3px solid #fff;
   border-radius: 50%;
-  box-shadow: 0 0 0 3px rgba(33,150,243,0.35);
+  box-shadow: 0 0 0 3px rgba(52, 138, 167, 0.35);
 }
 
 /* ── Popup ───────────────────────────────────────────────────────── */
@@ -254,18 +229,18 @@
 
 .mappage-popup strong {
   font-size: 0.95rem;
-  color: #263238;
+  color: var(--map-ink);
 }
 
 .mappage-popup-city {
   font-size: 0.8rem;
-  color: #78909c;
+  color: var(--map-muted);
 }
 
 .mappage-popup p {
   margin: 0.25rem 0 0;
   font-size: 0.82rem;
-  color: #546e7a;
+  color: var(--map-muted);
   line-height: 1.4;
 }
 
@@ -275,10 +250,10 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  background: rgba(255,255,255,0.9);
+  background: rgba(255, 255, 255, 0.92);
   padding: 0.5rem 1rem;
   border-radius: 8px;
   z-index: 20;
   font-size: 0.9rem;
-  color: #607d8b;
+  color: var(--map-muted);
 }

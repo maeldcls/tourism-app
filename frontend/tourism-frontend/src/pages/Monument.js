@@ -93,6 +93,12 @@ export default function Monument() {
   const visibleThumbs = images.slice(0, MAX_VISIBLE_THUMBS);
   const extraThumbs    = images.length - MAX_VISIBLE_THUMBS;
 
+  const hasInfos = Boolean(
+    tags['opening_hours'] || tags['fee'] || tags['wheelchair'] ||
+    tags['phone'] || tags['contact:phone'] || tags['architect'] ||
+    tags['start_date'] || tags['heritage']
+  );
+
   return (
     <>
       <div className="monu-page">
@@ -221,6 +227,7 @@ export default function Monument() {
           </div>
 
           {/* Infos clés */}
+          {hasInfos && (
           <div className="monu-infos">
             {tags['opening_hours'] && (
               <div className="monu-info-row">
@@ -270,13 +277,8 @@ export default function Monument() {
                 <span>Patrimoine niveau {tags['heritage']}</span>
               </div>
             )}
-            <div className="monu-info-row">
-              <span className="monu-info-label">Coordonnées</span>
-              <span className="monu-coords">
-                {monument.latitude?.toFixed(5)}, {monument.longitude?.toFixed(5)}
-              </span>
-            </div>
           </div>
+          )}
 
           {/* Liens externes */}
           {(tags.website || wikipedia || wikimediaCommons) && (

@@ -490,12 +490,25 @@ def get_trip_route(
         raise HTTPException(status_code=404, detail="Trajet introuvable")
     require_trip_role(db, trip, current_user, "read")
 
-    ordered = sorted(trip.trip_monuments, key=lambda tm: tm.order)
-    coords = [
-        [tm.monument.longitude, tm.monument.latitude]
-        for tm in ordered
-        if tm.monument and tm.monument.latitude is not None and tm.monument.longitude is not None
-    ]
+    # Les monuments et points personnalisés partagent un même espace d'`order`
+    # (voir /reorder) : on les fusionne et on trie sur ce champ commun pour que
+    # le tracé et la numérotation suivent l'ordre réel de la timeline.
+    stops = sorted(
+        [
+            *[
+                {"order": tm.order, "longitude": tm.monument.longitude, "latitude": tm.monument.latitude}
+                for tm in trip.trip_monuments
+                if tm.monument and tm.monument.latitude is not None and tm.monument.longitude is not None
+            ],
+            *[
+                {"order": p.order, "longitude": p.longitude, "latitude": p.latitude}
+                for p in trip.custom_points
+                if p.latitude is not None and p.longitude is not None
+            ],
+        ],
+        key=lambda s: s["order"],
+    )
+    coords = [[s["longitude"], s["latitude"]] for s in stops]
 
     if len(coords) < 2:
         return {"coordinates": [], "distance": None, "duration": None}

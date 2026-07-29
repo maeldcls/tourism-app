@@ -1,14 +1,25 @@
 .monu-page {
-  --monu-cream: #f4f2e8;
-  --monu-accent: #c3d62e;
-  --monu-accent-dark: #a8b826;
-  --monu-ink: #1c1c1c;
-  --monu-muted: #8b8b7a;
+  --monu-bg-top: #eef8ea;
+  --monu-bg-bottom: #f5eff5;
+  --monu-surface: #ffffff;
+  --monu-ink: #241b2e;
+  --monu-muted: #82788f;
+  --monu-border: #e7e1e8;
+
+  --monu-lime: #bce784;
+  --monu-mint: #5dd39e;
+  --monu-mint-dark: #2fa876;
+  --monu-teal: #348aa7;
+  --monu-teal-dark: #276a80;
+  --monu-slate: #525174;
+  --monu-plum: #513b56;
+
+  --monu-gradient: linear-gradient(135deg, var(--monu-mint), var(--monu-teal));
 
   max-width: 600px;
   margin: 0 auto;
   padding: 0 0 5rem;
-  background: var(--monu-cream);
+  background: linear-gradient(180deg, var(--monu-bg-top) 0%, var(--monu-bg-bottom) 100%);
   min-height: 100vh;
 }
 
@@ -38,7 +49,7 @@
 }
 
 .monu-hero-img--skeleton {
-  background: linear-gradient(90deg, #e3e1d4 25%, #d6d4c4 50%, #e3e1d4 75%);
+  background: linear-gradient(90deg, var(--monu-border) 25%, #dcd5df 50%, var(--monu-border) 75%);
   background-size: 200% 100%;
   animation: skeleton-shimmer 1.4s infinite;
 }
@@ -47,8 +58,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #e3e1d4;
-  color: #b8b6a4;
+  background: var(--monu-border);
+  color: #b7aec3;
 }
 
 @keyframes skeleton-shimmer {
@@ -70,7 +81,7 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+  box-shadow: 0 2px 8px rgba(36, 27, 46, 0.22);
 }
 
 .monu-add-photo {
@@ -87,7 +98,7 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+  box-shadow: 0 2px 8px rgba(36, 27, 46, 0.22);
 }
 
 .monu-thumb-strip {
@@ -97,10 +108,10 @@
   transform: translateX(-50%);
   display: flex;
   gap: 8px;
-  background: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.92);
   padding: 5px;
   border-radius: 14px;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+  box-shadow: 0 4px 14px rgba(36, 27, 46, 0.22);
 }
 
 .monu-thumb {
@@ -112,12 +123,12 @@
   padding: 0;
   border: 2px solid transparent;
   cursor: pointer;
-  background: #eceff1;
+  background: var(--monu-border);
   transition: border-color 0.15s, transform 0.15s;
 }
 
 .monu-thumb--active {
-  border-color: var(--monu-accent);
+  border-color: var(--monu-teal);
 }
 
 .monu-thumb:hover {
@@ -184,6 +195,10 @@
   padding-top: 0.2rem;
 }
 
+.monu-rating svg {
+  color: var(--monu-mint-dark);
+}
+
 .monu-rating-count {
   font-weight: 400;
   color: var(--monu-muted);
@@ -213,7 +228,7 @@
   gap: 4px;
   background: none;
   border: none;
-  color: var(--monu-accent-dark);
+  color: var(--monu-teal-dark);
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
@@ -233,7 +248,7 @@
 
 .monu-description {
   margin: 0;
-  color: #5c5c50;
+  color: var(--monu-muted);
   font-size: 0.9rem;
   line-height: 1.6;
   font-style: italic;
@@ -252,20 +267,27 @@
   padding: 0.85rem;
   border: none;
   border-radius: 999px;
-  background: var(--monu-accent);
-  color: var(--monu-ink);
+  background: var(--monu-gradient);
+  color: #fff;
   font-size: 0.95rem;
   font-weight: 700;
   cursor: pointer;
-  transition: background 0.2s;
+  box-shadow: 0 4px 14px rgba(52, 138, 167, 0.3);
+  transition: filter 0.2s, box-shadow 0.2s;
 }
 
-.monu-visit-btn:hover {
-  background: var(--monu-accent-dark);
+.monu-visit-btn:hover:not(:disabled) {
+  filter: brightness(1.06);
 }
 
 .monu-visit-btn--active {
-  background: var(--monu-accent-dark);
+  background: var(--monu-plum);
+  box-shadow: 0 4px 14px rgba(81, 59, 86, 0.3);
+}
+
+.monu-visit-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
 }
 
 .monu-add-btn {
@@ -274,28 +296,30 @@
   height: 48px;
   border-radius: 50%;
   border: none;
-  background: var(--monu-accent);
-  color: var(--monu-ink);
+  background: var(--monu-gradient);
+  color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background 0.2s;
+  box-shadow: 0 4px 14px rgba(52, 138, 167, 0.3);
+  transition: filter 0.2s;
 }
 
 .monu-add-btn:hover {
-  background: var(--monu-accent-dark);
+  filter: brightness(1.06);
 }
 
 /* Infos clés */
 .monu-infos {
-  background: #fff;
-  border-radius: 12px;
-  padding: 0.75rem 1rem;
+  background: var(--monu-surface);
+  border-radius: 14px;
+  padding: 0.85rem 1rem;
   margin-bottom: 1.25rem;
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
+  box-shadow: 0 2px 10px rgba(81, 59, 86, 0.08);
 }
 
 .monu-info-row {
@@ -312,12 +336,6 @@
   flex-shrink: 0;
 }
 
-.monu-coords {
-  font-family: monospace;
-  font-size: 0.8rem;
-  color: #b0aea0;
-}
-
 .monu-links {
   display: flex;
   flex-direction: column;
@@ -332,16 +350,16 @@
   font-size: 0.9rem;
   font-weight: 600;
   text-decoration: none;
-  background: #e3f2fd;
-  color: #1976d2;
+  background: rgba(52, 138, 167, 0.12);
+  color: var(--monu-teal-dark);
 }
 
 .monu-link--wiki {
-  background: #fff8e1;
-  color: #f57f17;
+  background: rgba(93, 211, 158, 0.15);
+  color: var(--monu-mint-dark);
 }
 
 .monu-link--commons {
-  background: #e8f5e9;
-  color: #2e7d32;
+  background: rgba(82, 81, 116, 0.12);
+  color: var(--monu-slate);
 }

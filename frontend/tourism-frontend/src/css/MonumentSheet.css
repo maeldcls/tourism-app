@@ -11,7 +11,7 @@
   right: 0;
   background: #fff;
   border-radius: 20px 20px 0 0;
-  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.14);
+  box-shadow: 0 -4px 24px rgba(36, 27, 46, 0.18);
   padding: 0.75rem 1.25rem 1.5rem;
   z-index: 50;
   animation: sheet-slide-up 0.25s cubic-bezier(0.32, 0.72, 0, 1);
@@ -27,7 +27,7 @@
 .sheet-handle {
   width: 36px;
   height: 4px;
-  background: #cfd8dc;
+  background: var(--map-border, #e7e1e8);
   border-radius: 2px;
   margin: 0 auto 0.85rem;
 }
@@ -48,7 +48,7 @@
 }
 
 .sheet-close {
-  background: #f5f5f5;
+  background: #f0ecf1;
   border: none;
   border-radius: 50%;
   width: 30px;
@@ -57,7 +57,7 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: #607d8b;
+  color: var(--map-muted, #82788f);
   padding: 0;
 }
 
@@ -70,7 +70,7 @@
   margin: 0 0 0.35rem;
   font-size: 1.2rem;
   font-weight: 700;
-  color: #1a2332;
+  color: var(--map-ink, #241b2e);
   line-height: 1.3;
 }
 
@@ -78,7 +78,7 @@
   display: flex;
   align-items: center;
   gap: 0.3rem;
-  color: #78909c;
+  color: var(--map-muted, #82788f);
   font-size: 0.85rem;
   margin-bottom: 0.75rem;
 }
@@ -106,11 +106,11 @@
   border: 2px solid transparent;
   cursor: pointer;
   transition: border-color 0.15s, transform 0.15s;
-  background: #eceff1;
+  background: var(--map-border, #e7e1e8);
 }
 
 .sheet-thumb:hover {
-  border-color: #2196f3;
+  border-color: var(--map-teal, #348aa7);
   transform: scale(1.04);
 }
 
@@ -122,9 +122,9 @@
 }
 
 .sheet-thumb--more {
-  background: #e8edf0;
+  background: #f0ecf1;
   border: none;
-  color: #455a64;
+  color: var(--map-slate, #525174);
   font-size: 1rem;
   font-weight: 700;
   display: flex;
@@ -133,13 +133,13 @@
 }
 
 .sheet-thumb--more:hover {
-  background: #cfd8dc;
+  background: var(--map-border, #e7e1e8);
   border-color: transparent;
   transform: scale(1.04);
 }
 
 .sheet-thumb--skeleton {
-  background: linear-gradient(90deg, #eceff1 25%, #e0e6ea 50%, #eceff1 75%);
+  background: linear-gradient(90deg, #e7e1e8 25%, #dcd5df 50%, #e7e1e8 75%);
   background-size: 200% 100%;
   animation: skeleton-shimmer 1.4s infinite;
   cursor: default;
@@ -154,21 +154,14 @@
 .sheet-description {
   margin: 0 0 0.75rem;
   font-size: 0.9rem;
-  color: #455a64;
+  color: var(--map-ink, #241b2e);
   line-height: 1.55;
-}
-
-.sheet-coords {
-  font-size: 0.72rem;
-  color: #b0bec5;
-  font-family: monospace;
-  margin-bottom: 1rem;
 }
 
 .sheet-website {
   display: inline-block;
   font-size: 0.82rem;
-  color: #2196f3;
+  color: var(--map-teal-dark, #276a80);
   margin-bottom: 0.5rem;
 }
 
@@ -180,10 +173,10 @@
   gap: 0.5rem;
   padding: 0.75rem;
   background: #fff;
-  color: #2196f3;
+  color: var(--map-teal-dark, #276a80);
   font-size: 0.95rem;
   font-weight: 600;
-  border: 2px solid #2196f3;
+  border: 2px solid var(--map-teal, #348aa7);
   border-radius: 10px;
   cursor: pointer;
   margin-bottom: 0.65rem;
@@ -191,7 +184,7 @@
 }
 
 .sheet-detail:hover {
-  background: #e3f2fd;
+  background: rgba(52, 138, 167, 0.08);
 }
 
 .sheet-save {
@@ -201,18 +194,18 @@
   justify-content: center;
   gap: 0.5rem;
   padding: 0.75rem;
-  background: #2196f3;
+  background: var(--map-gradient, linear-gradient(135deg, #5dd39e, #348aa7));
   color: #fff;
   font-size: 0.95rem;
   font-weight: 600;
   border: none;
   border-radius: 10px;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: filter 0.2s;
 }
 
 .sheet-save:hover:not(:disabled) {
-  background: #1976d2;
+  filter: brightness(1.06);
 }
 
 .sheet-save:disabled {
@@ -221,9 +214,10 @@
 }
 
 .sheet-save--done {
-  background: #388e3c;
+  background: var(--map-plum, #513b56);
 }
 
 .sheet-save--done:hover:not(:disabled) {
-  background: #388e3c;
+  background: var(--map-plum, #513b56);
+  filter: none;
 }

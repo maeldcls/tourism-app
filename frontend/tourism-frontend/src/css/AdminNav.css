@@ -1,0 +1,41 @@
+.admin-nav {
+  position: fixed;
+  top: max(12px, env(safe-area-inset-top));
+  right: 12px;
+  z-index: 30;
+  display: flex;
+  gap: 0.2rem;
+  padding: 0.3rem;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(6px);
+  border-radius: 999px;
+  box-shadow: 0 4px 18px rgba(36, 27, 46, 0.18);
+}
+
+.admin-nav-link {
+  padding: 0.4rem 0.8rem;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: #525174;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s;
+}
+
+.admin-nav-link:hover {
+  background: rgba(52, 138, 167, 0.1);
+  color: #276a80;
+}
+
+.admin-nav-link--active {
+  background: linear-gradient(135deg, #5dd39e, #348aa7);
+  color: #fff;
+}
+
+@media (max-width: 480px) {
+  .admin-nav-link {
+    padding: 0.4rem 0.6rem;
+    font-size: 0.7rem;
+  }
+}
