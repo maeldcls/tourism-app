@@ -520,7 +520,11 @@ def get_trip_route(
         resp = requests.post(
             ORS_URL,
             headers={"Authorization": ORS_API_KEY, "Content-Type": "application/json"},
-            json={"coordinates": coords},
+            # radiuses=-1 : pas de limite de recherche autour d'un point (au lieu des 350m
+            # par défaut d'ORS) — un point isolé (ex. un point custom sans sentier connu à
+            # proximité) est relié au point routable le plus proche plutôt que de faire
+            # échouer tout le trajet, comme le fait Google Maps pour un lieu hors-piste.
+            json={"coordinates": coords, "radiuses": [-1] * len(coords)},
             timeout=10,
         )
         resp.raise_for_status()

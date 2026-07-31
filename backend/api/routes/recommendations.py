@@ -10,10 +10,12 @@ from typing import Optional
 
 import requests
 from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import case, func
 from sqlalchemy.orm import Session
 
 import models
 from database import get_db
+from routes.ratings import MIN_VOTES_FOR_SCORE, _score as _rating_score
 
 router = APIRouter(prefix="/recommendations", tags=["Recommandations"])
 
@@ -115,9 +117,109 @@ def _score_monument(monument: models.Monument, profile: dict, user_theme_map: di
     return 0.6 * tag_score + 0.4 * embed_score
 
 
+def _get_popularity_counts(db: Session) -> dict[int, int]:
+    """Nombre de fois qu'un monument a été ajouté à un trajet + nombre de visites, par monument."""
+    counts: dict[int, int] = {}
+    for monument_id, cnt in (
+        db.query(models.TripMonument.monument_id, func.count().label("cnt"))
+        .group_by(models.TripMonument.monument_id)
+        .all()
+    ):
+        counts[monument_id] = counts.get(monument_id, 0) + cnt
+    for monument_id, cnt in (
+        db.query(models.Visit.monument_id, func.count().label("cnt"))
+        .group_by(models.Visit.monument_id)
+        .all()
+    ):
+        counts[monument_id] = counts.get(monument_id, 0) + cnt
+    return counts
+
+
+def _get_popular(
+    lat: Optional[float],
+    lon: Optional[float],
+    max_km: Optional[float],
+    offset: int,
+    limit: int,
+    db: Session,
+) -> dict:
+    counts = _get_popularity_counts(db)
+
+    monuments = db.query(models.Monument).all()
+    if lat is not None and lon is not None and max_km is not None:
+        monuments = [
+            m for m in monuments
+            if m.latitude is not None and m.longitude is not None
+            and _haversine_km(lat, lon, m.latitude, m.longitude) <= max_km
+        ]
+
+    monuments.sort(key=lambda m: counts.get(m.id, 0), reverse=True)
+    page = monuments[offset: offset + limit]
+
+    result = _format_results(page, profile=None, user_theme_map={}, lat=lat, lon=lon)
+    for item in result["items"]:
+        item["popularity_count"] = counts.get(item["id"], 0)
+    result["has_history"] = True
+    return result
+
+
+def _get_rating_stats(db: Session) -> dict[int, tuple[int, int]]:
+    """(total, positive) par monument_id, calculé en base pour éviter de charger tous les votes."""
+    rows = (
+        db.query(
+            models.Rating.monument_id,
+            func.count().label("total"),
+            func.sum(case((models.Rating.is_positive, 1), else_=0)).label("positive"),
+        )
+        .group_by(models.Rating.monument_id)
+        .all()
+    )
+    return {monument_id: (total, positive or 0) for monument_id, total, positive in rows}
+
+
+def _get_rated(
+    lat: Optional[float],
+    lon: Optional[float],
+    max_km: Optional[float],
+    offset: int,
+    limit: int,
+    db: Session,
+) -> dict:
+    stats = _get_rating_stats(db)
+    eligible_ids = [mid for mid, (total, _) in stats.items() if total >= MIN_VOTES_FOR_SCORE]
+    if not eligible_ids:
+        return {"items": [], "has_history": True, "top_user_themes": []}
+
+    monuments = db.query(models.Monument).filter(models.Monument.id.in_(eligible_ids)).all()
+    if lat is not None and lon is not None and max_km is not None:
+        monuments = [
+            m for m in monuments
+            if m.latitude is not None and m.longitude is not None
+            and _haversine_km(lat, lon, m.latitude, m.longitude) <= max_km
+        ]
+
+    def percent_of(m: models.Monument) -> float:
+        total, positive = stats[m.id]
+        return positive / total
+
+    monuments.sort(key=percent_of, reverse=True)
+    page = monuments[offset: offset + limit]
+
+    result = _format_results(page, profile=None, user_theme_map={}, lat=lat, lon=lon)
+    for item in result["items"]:
+        total, positive = stats[item["id"]]
+        score = _rating_score(total, positive)
+        item["rating_percent"] = score["percent"]
+        item["rating_label"] = score["label"]
+        item["rating_total"] = total
+    result["has_history"] = True
+    return result
+
+
 @router.get("")
 def get_recommendations(
     user_id: int = Query(...),
+    mode: str = Query("recommended", pattern="^(recommended|popular|rated)$"),
     lat: Optional[float] = Query(None),
     lon: Optional[float] = Query(None),
     max_km: Optional[float] = Query(None, description="Rayon de recherche en km (optionnel)"),
@@ -128,6 +230,11 @@ def get_recommendations(
     user = db.query(models.User).filter(models.User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="Utilisateur introuvable")
+
+    if mode == "popular":
+        return _get_popular(lat, lon, max_km, offset, limit, db)
+    if mode == "rated":
+        return _get_rated(lat, lon, max_km, offset, limit, db)
 
     history = _get_user_history(user_id, db)
     known_ids = {m.id for m in history}

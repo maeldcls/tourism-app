@@ -26,12 +26,10 @@ class RatingCreate(BaseModel):
     is_positive: bool
 
 
-def _score(ratings: list[models.Rating]) -> dict:
-    total = len(ratings)
+def _score(total: int, positive: int) -> dict:
     if total < MIN_VOTES_FOR_SCORE:
         return {"percent": None, "label": "Pas assez d'avis", "total": total}
 
-    positive = sum(1 for r in ratings if r.is_positive)
     percent = round(positive / total * 100)
 
     if percent >= 95:
@@ -74,8 +72,8 @@ def get_rating(
             user_vote = own.is_positive
 
     return {
-        "global": _score(ratings),
-        "recent": _score(recent_ratings),
+        "global": _score(len(ratings), sum(1 for r in ratings if r.is_positive)),
+        "recent": _score(len(recent_ratings), sum(1 for r in recent_ratings if r.is_positive)),
         "user_vote": user_vote,
     }
 

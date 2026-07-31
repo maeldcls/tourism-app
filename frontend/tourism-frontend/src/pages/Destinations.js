@@ -1,11 +1,37 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import API_URL from '../config';
 import RecommendationCard from '../components/RecommendationCard';
+import DestinationsSearchBar from '../components/DestinationsSearchBar';
+import DestinationsFilterSheet from '../components/DestinationsFilterSheet';
 import '../css/Destinations.css';
 
 const API = API_URL;
 const PAGE_SIZE = 10;
+
+const TABS = [
+  { mode: 'popular', label: 'Les plus populaires' },
+  { mode: 'rated', label: 'Les mieux notés' },
+  { mode: 'recommended', label: 'Mes recommandations' },
+];
+
+const MODE_COPY = {
+  recommended: {
+    sectionLabel: { withHistory: 'Pour vous', withoutHistory: 'À explorer' },
+    subtitle: { withHistory: 'Recommandations basées sur vos voyages', withoutHistory: 'Explorez de nouveaux lieux' },
+    empty: 'Ajoutez des monuments à vos trajets pour affiner les recommandations.',
+  },
+  popular: {
+    sectionLabel: { withHistory: 'Populaires', withoutHistory: 'Populaires' },
+    subtitle: { withHistory: 'Les lieux les plus ajoutés par la communauté', withoutHistory: 'Les lieux les plus ajoutés par la communauté' },
+    empty: 'Aucun monument populaire pour le moment.',
+  },
+  rated: {
+    sectionLabel: { withHistory: 'Mieux notés', withoutHistory: 'Mieux notés' },
+    subtitle: { withHistory: 'Les mieux notés par la communauté', withoutHistory: 'Les mieux notés par la communauté' },
+    empty: 'Aucun monument suffisamment noté pour le moment.',
+  },
+};
 
 function useGeolocation() {
   const [position, setPosition] = useState(null);
@@ -26,6 +52,11 @@ export default function Destinations() {
   const { user, token } = useAuth();
   const position = useGeolocation();
 
+  const [mode, setMode] = useState('recommended');
+  const [city, setCity] = useState(null);
+  const [radiusKm, setRadiusKm] = useState(null);
+  const [filterOpen, setFilterOpen] = useState(false);
+
   const [items, setItems] = useState([]);
   const [offset, setOffset] = useState(0);
   const [hasMore, setHasMore] = useState(true);
@@ -35,8 +66,14 @@ export default function Destinations() {
   const [hasHistory, setHasHistory] = useState(false);
   const [positionReady, setPositionReady] = useState(false);
 
-  const sentinelRef = useRef(null);
+  const [sentinelEl, setSentinelEl] = useState(null);
   const loadingRef = useRef(false);
+
+  const center = useMemo(
+    () => city ?? (position ? { lat: position.lat, lon: position.lon } : null),
+    [city, position]
+  );
+  const centerLabel = city ? city.name : (position ? 'votre position' : null);
 
   const fetchRecommendations = useCallback(async (currentOffset, replace = false) => {
     if (!user || loadingRef.current) return;
@@ -47,12 +84,14 @@ export default function Destinations() {
     try {
       const params = new URLSearchParams({
         user_id: user.id,
+        mode,
         offset: currentOffset,
         limit: PAGE_SIZE,
       });
-      if (position) {
-        params.set('lat', position.lat);
-        params.set('lon', position.lon);
+      if (center) {
+        params.set('lat', center.lat);
+        params.set('lon', center.lon);
+        if (radiusKm) params.set('max_km', radiusKm);
       }
 
       const resp = await fetch(`${API}/recommendations?${params}`, {
@@ -72,7 +111,7 @@ export default function Destinations() {
       setLoading(false);
       setInitialLoading(false);
     }
-  }, [user, token, position]);
+  }, [user, token, mode, center, radiusKm]);
 
   // Chargement initial — attend que la position soit déterminée (ou timeout)
   useEffect(() => {
@@ -95,7 +134,7 @@ export default function Destinations() {
 
   // Infinite scroll avec IntersectionObserver
   useEffect(() => {
-    if (!sentinelRef.current || !hasMore) return;
+    if (!sentinelEl || !hasMore) return;
     const observer = new IntersectionObserver(
       entries => {
         if (entries[0].isIntersecting && !loadingRef.current) {
@@ -106,9 +145,9 @@ export default function Destinations() {
       },
       { threshold: 0.1 }
     );
-    observer.observe(sentinelRef.current);
+    observer.observe(sentinelEl);
     return () => observer.disconnect();
-  }, [offset, hasMore, fetchRecommendations]);
+  }, [sentinelEl, offset, hasMore, fetchRecommendations]);
 
   if (!user) {
     return (
@@ -123,28 +162,47 @@ export default function Destinations() {
     );
   }
 
+  const copy = MODE_COPY[mode];
+  const historyKey = hasHistory ? 'withHistory' : 'withoutHistory';
+
   return (
     <div className="dest-page">
+      <div className="dest-sticky">
+        <DestinationsSearchBar
+          city={city}
+          onSelectCity={setCity}
+          onOpenFilter={() => setFilterOpen(true)}
+          filterActive={radiusKm !== null}
+        />
+        <div className="dest-tabs">
+          {TABS.map(tab => (
+            <button
+              key={tab.mode}
+              className={`dest-tab ${mode === tab.mode ? 'dest-tab--active' : ''}`}
+              onClick={() => setMode(tab.mode)}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div className="dest-header">
         <div>
           <h1 className="dest-title">Découvrir</h1>
-          <p className="dest-subtitle">
-            {hasHistory
-              ? 'Recommandations basées sur vos voyages'
-              : 'Explorez de nouveaux lieux'}
-          </p>
+          <p className="dest-subtitle">{copy.subtitle[historyKey]}</p>
         </div>
-        {position && (
+        {centerLabel && (
           <span className="dest-location-badge">
             <svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13">
               <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" />
             </svg>
-            À proximité
+            {city ? city.name : 'À proximité'}
           </span>
         )}
       </div>
 
-      {hasHistory && topThemes.length > 0 && (
+      {mode === 'recommended' && hasHistory && topThemes.length > 0 && (
         <div className="dest-taste-strip">
           <span className="dest-taste-label">Vos goûts</span>
           <div className="dest-taste-tags">
@@ -158,7 +216,7 @@ export default function Destinations() {
       {initialLoading ? (
         <div className="dest-loading-initial">
           <div className="dest-spinner" />
-          <span>Analyse de vos préférences…</span>
+          <span>Chargement…</span>
         </div>
       ) : items.length === 0 ? (
         <div className="dest-empty">
@@ -166,13 +224,11 @@ export default function Destinations() {
             <path d="M21 3L3 10.53v.98l6.84 2.65L12.48 21h.98L21 3z" />
           </svg>
           <p>Aucun lieu trouvé pour le moment.</p>
-          <span>Ajoutez des monuments à vos trajets pour affiner les recommandations.</span>
+          <span>{copy.empty}</span>
         </div>
       ) : (
         <>
-          <div className="dest-section-label">
-            {hasHistory ? 'Pour vous' : 'À explorer'}
-          </div>
+          <div className="dest-section-label">{copy.sectionLabel[historyKey]}</div>
 
           <div className="dest-grid">
             {items.map(item => (
@@ -180,7 +236,7 @@ export default function Destinations() {
             ))}
           </div>
 
-          <div ref={sentinelRef} className="dest-sentinel" />
+          <div ref={setSentinelEl} className="dest-sentinel" />
 
           {loading && (
             <div className="dest-loading-more">
@@ -193,6 +249,15 @@ export default function Destinations() {
             <p className="dest-end">Vous avez tout exploré !</p>
           )}
         </>
+      )}
+
+      {filterOpen && (
+        <DestinationsFilterSheet
+          radiusKm={radiusKm}
+          onChange={setRadiusKm}
+          onClose={() => setFilterOpen(false)}
+          centerLabel={centerLabel}
+        />
       )}
     </div>
   );

@@ -1,9 +1,52 @@
 .dest-page {
-  padding: 1.5rem 1rem 6rem;
+  padding: 0 1rem 6rem;
   max-width: 600px;
   margin: 0 auto;
   min-height: 100dvh;
   background: #f7f5f2;
+}
+
+/* ── Sticky search + onglets ────────────────────────────────────────────────── */
+
+.dest-sticky {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: #f7f5f2;
+  padding: max(0.9rem, env(safe-area-inset-top)) 0 0.8rem;
+  margin: 0 -1rem;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+.dest-tabs {
+  display: flex;
+  gap: 0.4rem;
+  margin-top: 0.75rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.dest-tabs::-webkit-scrollbar { display: none; }
+
+.dest-tab {
+  flex-shrink: 0;
+  padding: 0.5rem 0.9rem;
+  border: none;
+  border-radius: 999px;
+  background: #fff;
+  color: #64748b;
+  font-size: 0.8rem;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(30, 58, 95, 0.08);
+  transition: background 0.15s, color 0.15s;
+}
+
+.dest-tab--active {
+  background: #1e3a5f;
+  color: #fff;
 }
 
 /* ── Header ─────────────────────────────────────────────────────────────────── */
@@ -12,6 +55,7 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
+  margin-top: 1.25rem;
   margin-bottom: 1rem;
 }
 
@@ -139,6 +183,19 @@
   top: 0.6rem;
   right: 0.6rem;
   background: rgba(0,0,0,0.55);
+  color: #fff;
+  border-radius: 20px;
+  padding: 0.2rem 0.55rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  backdrop-filter: blur(4px);
+}
+
+.rec-card-badge {
+  position: absolute;
+  top: 0.6rem;
+  left: 0.6rem;
+  background: rgba(30, 58, 95, 0.85);
   color: #fff;
   border-radius: 20px;
   padding: 0.2rem 0.55rem;

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AddToTripDialog from './AddToTripDialog';
 import { useMonumentImages } from '../hooks/useMonumentImages';
+import API_URL from '../config';
 
 const THEME_COLORS = {
   musée:        { bg: '#e0f2fe', color: '#0369a1' },
@@ -30,7 +31,10 @@ export default function RecommendationCard({ monument }) {
 
   const topThemes = monument.themes?.slice(0, 3) ?? [];
   const matchedSet = new Set(monument.matched_themes ?? []);
-  const displayImage = monument.image_url || images[0];
+  const monumentImageUrl = monument.image_url?.startsWith('/')
+    ? `${API_URL}${monument.image_url}`
+    : monument.image_url;
+  const displayImage = monumentImageUrl || images[0];
 
   return (
     <>
@@ -47,6 +51,12 @@ export default function RecommendationCard({ monument }) {
           )}
           {monument.distance_km != null && (
             <span className="rec-card-distance">{monument.distance_km} km</span>
+          )}
+          {monument.popularity_count != null && (
+            <span className="rec-card-badge">🔥 Ajouté {monument.popularity_count}×</span>
+          )}
+          {monument.rating_percent != null && (
+            <span className="rec-card-badge">⭐ {monument.rating_percent}% recommandé</span>
           )}
         </div>
 

@@ -1,0 +1,119 @@
+.dfs-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(30, 58, 95, 0.35);
+  backdrop-filter: blur(3px);
+  z-index: 100;
+  animation: dfs-fade-in 0.18s ease;
+}
+
+@keyframes dfs-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.dfs-dialog {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #fff;
+  border-radius: 20px 20px 0 0;
+  z-index: 101;
+  padding: 1.25rem 1.25rem 2rem;
+  box-shadow: 0 -8px 40px rgba(30, 58, 95, 0.18);
+  animation: dfs-slide-up 0.26s cubic-bezier(0.32, 0.72, 0, 1);
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+@keyframes dfs-slide-up {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+
+.dfs-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.9rem;
+}
+
+.dfs-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #1e3a5f;
+}
+
+.dfs-close {
+  background: #f1f5f9;
+  border: none;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #94a3b8;
+  padding: 0;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+
+.dfs-close:hover { background: #e2e8f0; }
+
+.dfs-close svg { width: 16px; height: 16px; }
+
+.dfs-section-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #94a3b8;
+  margin-bottom: 0.3rem;
+}
+
+.dfs-center-hint {
+  margin: 0 0 0.9rem;
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+.dfs-center-hint--warn {
+  color: #b45309;
+}
+
+.dfs-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.dfs-chip {
+  padding: 0.5rem 1rem;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 999px;
+  background: #f8fafc;
+  color: #475569;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+
+.dfs-chip:hover:not(:disabled) {
+  border-color: #348aa7;
+}
+
+.dfs-chip--active {
+  background: linear-gradient(135deg, #5dd39e, #348aa7);
+  border-color: transparent;
+  color: #fff;
+}
+
+.dfs-chip:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
