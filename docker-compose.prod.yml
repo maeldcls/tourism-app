@@ -22,6 +22,7 @@ services:
       DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@db:5432/tourism_app_db
       SECRET_KEY: ${SECRET_KEY}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      ORS_API_KEY: ${ORS_API_KEY}
     volumes:
       - uploads_data:/app/uploads
     depends_on:
