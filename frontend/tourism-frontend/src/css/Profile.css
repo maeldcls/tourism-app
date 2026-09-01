@@ -288,6 +288,50 @@
   transform: translateX(20px);
 }
 
+.profile-install-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  margin-bottom: 0.75rem;
+  background: var(--profile-gradient);
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: filter 0.2s;
+}
+
+.profile-install-btn:hover:not(:disabled) {
+  filter: brightness(1.06);
+}
+
+.profile-install-btn:disabled {
+  opacity: 0.7;
+  cursor: default;
+}
+
+.profile-install-hint {
+  width: 100%;
+  margin: 0 0 0.75rem;
+  padding: 0.65rem 0.85rem;
+  background: var(--profile-bg-top);
+  border-radius: 10px;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: var(--profile-muted);
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.profile-install-hint strong {
+  color: var(--profile-ink);
+}
+
 .profile-friend-code {
   width: 100%;
   background: rgba(52, 138, 167, 0.1);

@@ -3,6 +3,7 @@ import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import NotificationBell from '../components/NotificationBell';
 import VisitedMonumentCard from '../components/VisitedMonumentCard';
+import { useInstallPrompt } from '../hooks/useInstallPrompt';
 import API_URL from '../config';
 import '../css/Profile.css';
 
@@ -13,6 +14,8 @@ export default function Profile() {
   const { user, token, logout, updateUser } = useAuth();
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
+  const { canInstall, isIOSInstructions, promptInstall } = useInstallPrompt();
+  const [installing, setInstalling] = useState(false);
 
   const [editingUsername, setEditingUsername] = useState(false);
   const [usernameInput, setUsernameInput] = useState(user?.username ?? '');
@@ -100,6 +103,12 @@ export default function Profile() {
     const formData = new FormData();
     formData.append('is_public', String(!user.is_public));
     await submitPatch(formData);
+  }
+
+  async function handleInstall() {
+    setInstalling(true);
+    await promptInstall();
+    setInstalling(false);
   }
 
   function handleCopyCode() {
@@ -216,6 +225,21 @@ export default function Profile() {
             <span className="profile-toggle-knob" />
           </button>
         </div>
+
+        {canInstall && (
+          <button className="profile-install-btn" onClick={handleInstall} disabled={installing}>
+            <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
+              <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" />
+            </svg>
+            {installing ? 'Installation…' : "Installer l'application"}
+          </button>
+        )}
+
+        {isIOSInstructions && (
+          <p className="profile-install-hint">
+            Pour installer l'app : appuyez sur <strong>Partager</strong> puis <strong>« Sur l'écran d'accueil »</strong>.
+          </p>
+        )}
 
         <div className="profile-friend-code">
           <span className="profile-friend-code-label">Mon code ami</span>
