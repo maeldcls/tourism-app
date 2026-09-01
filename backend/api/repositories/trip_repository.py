@@ -10,6 +10,7 @@ de FastAPI.
 from typing import Optional
 
 from sqlalchemy import and_, or_
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 import models
@@ -63,11 +64,19 @@ class TripRepository:
         return self.db.query(models.TripMonument).filter(models.TripMonument.trip_id == trip_id).count()
 
     def add_monument(self, trip_id: int, monument_id: int) -> models.TripMonument:
+        """Peut lever IntegrityError si le monument a été ajouté entre-temps par une
+        requête concurrente (clé primaire composite trip_id+monument_id) — la
+        pré-vérification faite par l'appelant n'élimine pas la fenêtre de course,
+        seul le commit fait foi. À l'appelant de traduire ça en réponse HTTP (409)."""
         tm = models.TripMonument(
             trip_id=trip_id, monument_id=monument_id, order=self.count_trip_monuments(trip_id)
         )
         self.db.add(tm)
-        self.db.commit()
+        try:
+            self.db.commit()
+        except IntegrityError:
+            self.db.rollback()
+            raise
         return tm
 
     def remove_trip_monument(self, tm: models.TripMonument) -> None:

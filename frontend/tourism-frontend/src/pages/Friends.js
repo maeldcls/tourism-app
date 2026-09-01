@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { apiFetch } from '../services/api';
 import API_URL from '../config';
 import '../css/Friends.css';
 
@@ -33,21 +34,27 @@ export default function Friends() {
   const [codeError, setCodeError] = useState(null);
   const [codeLoading, setCodeLoading] = useState(false);
 
-  const authHeaders = { Authorization: `Bearer ${token}` };
+  const [loadError, setLoadError] = useState(null);
+  const [actionError, setActionError] = useState(null);
 
-  const loadAll = useCallback(() => {
+  const loadAll = useCallback(async () => {
     if (!token) return;
     setLoading(true);
-    Promise.all([
-      fetch(`${API}/friends`, { headers: authHeaders }).then(r => r.json()),
-      fetch(`${API}/friends/requests`, { headers: authHeaders }).then(r => r.json()),
-    ])
-      .then(([friendsData, requestsData]) => {
-        setFriends(Array.isArray(friendsData) ? friendsData : []);
-        setRequests(requestsData || { incoming: [], outgoing: [] });
-      })
-      .finally(() => setLoading(false));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    setLoadError(null);
+    try {
+      const [friendsRes, requestsRes] = await Promise.all([
+        apiFetch('/friends'),
+        apiFetch('/friends/requests'),
+      ]);
+      if (!friendsRes.ok || !requestsRes.ok) throw new Error();
+      const [friendsData, requestsData] = await Promise.all([friendsRes.json(), requestsRes.json()]);
+      setFriends(Array.isArray(friendsData) ? friendsData : []);
+      setRequests(requestsData || { incoming: [], outgoing: [] });
+    } catch {
+      setLoadError('Impossible de charger vos amis pour le moment.');
+    } finally {
+      setLoading(false);
+    }
   }, [token]);
 
   useEffect(() => { loadAll(); }, [loadAll]);
@@ -57,9 +64,10 @@ export default function Friends() {
     if (query.trim().length < 2) { setResults([]); return; }
     setSearching(true);
     debounceRef.current = setTimeout(() => {
-      fetch(`${API}/friends/search?q=${encodeURIComponent(query.trim())}`, { headers: authHeaders })
-        .then(r => r.json())
+      apiFetch(`/friends/search?q=${encodeURIComponent(query.trim())}`)
+        .then(r => (r.ok ? r.json() : []))
         .then(data => setResults(Array.isArray(data) ? data : []))
+        .catch(() => setResults([]))
         .finally(() => setSearching(false));
     }, 350);
     return () => clearTimeout(debounceRef.current);
@@ -68,16 +76,17 @@ export default function Friends() {
 
   async function sendRequest(userId, onDone) {
     setWorking(userId);
+    setActionError(null);
     try {
-      const r = await fetch(`${API}/friends/request`, {
+      const r = await apiFetch('/friends/request', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...authHeaders },
         body: JSON.stringify({ user_id: userId }),
       });
-      if (r.ok) {
-        onDone?.();
-        loadAll();
-      }
+      if (!r.ok) throw new Error();
+      onDone?.();
+      loadAll();
+    } catch {
+      setActionError("Impossible d'envoyer la demande.");
     } finally {
       setWorking(null);
     }
@@ -85,9 +94,13 @@ export default function Friends() {
 
   async function respondRequest(id, action) {
     setWorking(id);
+    setActionError(null);
     try {
-      const r = await fetch(`${API}/friends/requests/${id}/${action}`, { method: 'POST', headers: authHeaders });
-      if (r.ok) loadAll();
+      const r = await apiFetch(`/friends/requests/${id}/${action}`, { method: 'POST' });
+      if (!r.ok) throw new Error();
+      loadAll();
+    } catch {
+      setActionError("Impossible de traiter cette demande.");
     } finally {
       setWorking(null);
     }
@@ -95,9 +108,13 @@ export default function Friends() {
 
   async function removeRelation(userId) {
     setWorking(userId);
+    setActionError(null);
     try {
-      const r = await fetch(`${API}/friends/${userId}`, { method: 'DELETE', headers: authHeaders });
-      if (r.ok) loadAll();
+      const r = await apiFetch(`/friends/${userId}`, { method: 'DELETE' });
+      if (!r.ok) throw new Error();
+      loadAll();
+    } catch {
+      setActionError("Impossible de retirer cette relation.");
     } finally {
       setWorking(null);
     }
@@ -110,7 +127,7 @@ export default function Friends() {
     setCodeError(null);
     setCodeResult(null);
     try {
-      const r = await fetch(`${API}/friends/by-code/${encodeURIComponent(trimmed)}`, { headers: authHeaders });
+      const r = await apiFetch(`/friends/by-code/${encodeURIComponent(trimmed)}`);
       const data = await r.json();
       if (!r.ok) throw new Error(data.detail || 'Introuvable');
       setCodeResult(data);
@@ -152,6 +169,10 @@ export default function Friends() {
         </button>
         <h1>Amis</h1>
       </div>
+
+      {(loadError || actionError) && (
+        <div className="friends-banner-error">{loadError || actionError}</div>
+      )}
 
       <div className="friends-card">
         <div className="friends-section-label">Rechercher par pseudo</div>

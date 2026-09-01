@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { apiFetch } from '../services/api';
 import API_URL from '../config';
 import '../css/Travel.css';
 import { useMonumentImages } from '../hooks/useMonumentImages';
@@ -779,57 +780,67 @@ function TripCard({ trip, onRemoveItem, onDeleteTrip, onToggleVisited, justToggl
 }
 
 export default function Travel() {
-  const { user, token } = useAuth();
+  const { user } = useAuth();
   const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(null);
+  const [actionError, setActionError] = useState(null);
   const [showCreate, setShowCreate] = useState(false);
   const [newTripName, setNewTripName] = useState('');
   const [creating, setCreating] = useState(false);
   const [justToggled, setJustToggled] = useState(null);
 
-  const fetchTrips = useCallback(() => {
+  const fetchTrips = useCallback(async () => {
     if (!user) return;
-    fetch(`${API}/trips/user/${user.id}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then(r => r.json())
-      .then(data => { setTrips(Array.isArray(data) ? data : []); setLoading(false); })
-      .catch(() => setLoading(false));
-  }, [user, token]);
+    try {
+      const r = await apiFetch(`/trips/user/${user.id}`);
+      if (!r.ok) throw new Error();
+      const data = await r.json();
+      setTrips(Array.isArray(data) ? data : []);
+      setLoadError(null);
+    } catch {
+      setLoadError('Impossible de charger vos trajets pour le moment.');
+    } finally {
+      setLoading(false);
+    }
+  }, [user]);
 
   useEffect(() => { fetchTrips(); }, [fetchTrips]);
 
   async function createTrip() {
     if (!newTripName.trim()) return;
     setCreating(true);
-    await fetch(`${API}/trips`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ user_id: user.id, name: newTripName.trim() }),
-    });
-    setNewTripName('');
-    setShowCreate(false);
-    setCreating(false);
-    fetchTrips();
+    setActionError(null);
+    try {
+      const r = await apiFetch('/trips', {
+        method: 'POST',
+        body: JSON.stringify({ name: newTripName.trim() }),
+      });
+      if (!r.ok) throw new Error();
+      setNewTripName('');
+      setShowCreate(false);
+      fetchTrips();
+    } catch {
+      setActionError('Impossible de créer le trajet.');
+    } finally {
+      setCreating(false);
+    }
   }
 
   async function removeMonument(tripId, monumentId) {
-    await fetch(`${API}/trips/${tripId}/monuments/${monumentId}`, {
-      method: 'DELETE',
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    const r = await apiFetch(`/trips/${tripId}/monuments/${monumentId}`, { method: 'DELETE' });
+    if (!r.ok) { setActionError('Impossible de retirer ce monument.'); return; }
     fetchTrips();
   }
 
   async function deleteCustomPoint(pointId) {
-    await fetch(`${API}/custom-points/${pointId}`, {
-      method: 'DELETE',
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    const r = await apiFetch(`/custom-points/${pointId}`, { method: 'DELETE' });
+    if (!r.ok) { setActionError('Impossible de supprimer ce point.'); return; }
     fetchTrips();
   }
 
   async function removeItem(tripId, item) {
+    setActionError(null);
     if (item.kind === 'custom') {
       await deleteCustomPoint(item.custom_point_id);
     } else {
@@ -838,26 +849,23 @@ export default function Travel() {
   }
 
   async function deleteTrip(tripId) {
-    await fetch(`${API}/trips/${tripId}`, {
-      method: 'DELETE',
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    setActionError(null);
+    const r = await apiFetch(`/trips/${tripId}`, { method: 'DELETE' });
+    if (!r.ok) { setActionError('Impossible de supprimer ce trajet.'); return; }
     fetchTrips();
   }
 
   async function removeMember(tripId, collaboratorId) {
-    await fetch(`${API}/trips/${tripId}/collaborators/${collaboratorId}`, {
-      method: 'DELETE',
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    setActionError(null);
+    const r = await apiFetch(`/trips/${tripId}/collaborators/${collaboratorId}`, { method: 'DELETE' });
+    if (!r.ok) { setActionError('Impossible de retirer ce membre.'); return; }
     fetchTrips();
   }
 
   async function leaveTrip(tripId) {
-    await fetch(`${API}/trips/${tripId}/leave`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    setActionError(null);
+    const r = await apiFetch(`/trips/${tripId}/leave`, { method: 'POST' });
+    if (!r.ok) { setActionError('Impossible de quitter ce trajet.'); return; }
     fetchTrips();
   }
 
@@ -880,15 +888,15 @@ export default function Travel() {
     }
     try {
       const url = item.kind === 'monument'
-        ? `${API}/trips/${tripId}/monuments/${item.monument_id}`
-        : `${API}/custom-points/${item.custom_point_id}`;
-      const r = await fetch(url, {
+        ? `/trips/${tripId}/monuments/${item.monument_id}`
+        : `/custom-points/${item.custom_point_id}`;
+      const r = await apiFetch(url, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ is_visited: nextVisited }),
       });
       if (!r.ok) throw new Error();
     } catch {
+      setActionError('La mise à jour a échoué, statut restauré.');
       fetchTrips();
     }
   }
@@ -910,13 +918,13 @@ export default function Travel() {
       day: it.day ?? null,
     }));
     try {
-      const r = await fetch(`${API}/trips/${tripId}/reorder`, {
+      const r = await apiFetch(`/trips/${tripId}/reorder`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ items: payload }),
       });
       if (!r.ok) throw new Error();
     } catch {
+      setActionError("Le nouvel ordre n'a pas pu être enregistré, ordre restauré.");
       fetchTrips();
     }
   }
@@ -933,15 +941,15 @@ export default function Travel() {
     }));
     try {
       const url = item.kind === 'monument'
-        ? `${API}/trips/${tripId}/monuments/${item.monument_id}`
-        : `${API}/custom-points/${item.custom_point_id}`;
-      const r = await fetch(url, {
+        ? `/trips/${tripId}/monuments/${item.monument_id}`
+        : `/custom-points/${item.custom_point_id}`;
+      const r = await apiFetch(url, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ icon, color }),
       });
       if (!r.ok) throw new Error();
     } catch {
+      setActionError("L'icône n'a pas pu être enregistrée.");
       fetchTrips();
     }
   }
@@ -949,13 +957,13 @@ export default function Travel() {
   async function updateTripSettings(tripId, settings) {
     setTrips(prev => prev.map(t => t.id !== tripId ? t : { ...t, ...settings }));
     try {
-      const r = await fetch(`${API}/trips/${tripId}`, {
+      const r = await apiFetch(`/trips/${tripId}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify(settings),
       });
       if (!r.ok) throw new Error();
     } catch {
+      setActionError('Les réglages du trajet n\'ont pas pu être enregistrés.');
       fetchTrips();
     }
   }
@@ -976,6 +984,12 @@ export default function Travel() {
           Nouveau
         </button>
       </div>
+
+      {(loadError || actionError) && (
+        <div className="travel-banner-error" onClick={() => { setLoadError(null); setActionError(null); }}>
+          {loadError || actionError}
+        </div>
+      )}
 
       {showCreate && (
         <div className="travel-create-panel">

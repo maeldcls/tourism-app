@@ -1,10 +1,18 @@
 import datetime
+import logging
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.encoders import ENCODERS_BY_TYPE
 from fastapi.middleware.cors import CORSMiddleware  # type: ignore[import]
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 import models  # noqa: F401 — nécessaire pour que SQLAlchemy détecte les modèles
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(name)s %(message)s",
+)
+logger = logging.getLogger(__name__)
 
 # Toutes les colonnes datetime du projet sont des TIMESTAMP (sans fuseau) remplies
 # via datetime.utcnow() — donc toujours des instants UTC, mais Python les renvoie
@@ -77,6 +85,16 @@ app.include_router(trip_locations_router)
 
 # Fichiers statiques — photos communautaires uploadées (créé par routes.monument_photos à l'import)
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+
+
+# Filet de sécurité : toute exception non prévue (bug, panne d'un service externe non
+# catchée...) atterrissait auparavant en 500 brut de FastAPI, sans trace exploitable.
+# Les HTTPException levées volontairement par les routes ne passent PAS par ce handler
+# (Starlette les route vers son propre handler, plus spécifique).
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    logger.exception("Erreur non gérée sur %s %s", request.method, request.url.path)
+    return JSONResponse(status_code=500, content={"detail": "Erreur interne du serveur"})
 
 
 @app.get("/")

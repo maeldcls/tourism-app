@@ -3,11 +3,13 @@ from datetime import datetime
 from typing import Optional
 
 from fastapi import HTTPException
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 import models
 
 XP_PAR_VISITE = 50
+XP_PAR_NIVEAU = 500  # source unique : réutilisé par routes/stats.py pour la progression affichée
 
 
 def record_visit(
@@ -42,8 +44,20 @@ def record_visit(
 
     if first_visit:
         user.xp = (user.xp or 0) + XP_PAR_VISITE
-        user.level = max(1, user.xp // 500 + 1)
+        user.level = max(1, user.xp // XP_PAR_NIVEAU + 1)
         db.add(models.XpHistory(user_id=user.id, action=f"Visite : {monument.name}", xp=XP_PAR_VISITE))
 
-    db.flush()
+    try:
+        db.flush()
+    except IntegrityError:
+        # Une requête concurrente a créé la même visite (user_id+monument_id) entre
+        # la lecture ci-dessus et ce flush : on relit l'état réel plutôt que d'échouer,
+        # le résultat pour l'appelant ("ce monument est visité") reste correct.
+        db.rollback()
+        visit = db.query(models.Visit).filter(
+            models.Visit.user_id == user.id,
+            models.Visit.monument_id == monument_id,
+        ).first()
+        first_visit = False
+
     return visit, first_visit

@@ -18,7 +18,7 @@ from sqlalchemy.orm import Session
 
 from database import get_db
 from deps import get_current_user
-from trip_utils import get_trip
+from services.trip_utils import get_trip
 import models
 
 router = APIRouter(prefix="/trips", tags=["Position en direct"])

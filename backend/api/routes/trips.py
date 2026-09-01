@@ -10,18 +10,19 @@ DELETE /trips/{trip_id}                           → supprimer un trajet
 
 L'accès aux données passe par TripRepository/MonumentRepository (repositories/) :
 les handlers ci-dessous se limitent à valider la requête, vérifier les permissions
-(via trip_utils) et orchestrer/sérialiser — aucun db.query direct.
+(via services.trip_utils) et orchestrer/sérialiser — aucun db.query direct.
 """
 import os
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import Optional
 import requests
 from database import get_db
 from deps import get_current_user
-from trip_utils import get_trip_role, require_trip_role, load_trip_or_404, get_trip, accessible_trip_ids
-from visit_utils import record_visit
+from services.trip_utils import get_trip_role, require_trip_role, load_trip_or_404, get_trip, accessible_trip_ids
+from services.visit_utils import record_visit
 from repositories.trip_repository import TripRepository
 from repositories.monument_repository import MonumentRepository
 import models
@@ -244,7 +245,11 @@ def add_monument_to_trip(
     if repo.get_trip_monument(trip_id, body.monument_id):
         raise HTTPException(status_code=409, detail="Monument déjà dans ce trajet")
 
-    repo.add_monument(trip_id, body.monument_id)
+    try:
+        repo.add_monument(trip_id, body.monument_id)
+    except IntegrityError:
+        # Ajouté par une requête concurrente entre la pré-vérification et le commit.
+        raise HTTPException(status_code=409, detail="Monument déjà dans ce trajet")
     return {"trip_id": trip_id, "monument_id": body.monument_id}
 
 

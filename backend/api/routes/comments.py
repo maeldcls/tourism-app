@@ -5,6 +5,7 @@ GET    /monuments/{monument_id}/comments   → commentaires visibles d'un monume
 POST   /monuments/{monument_id}/comments   → poster un commentaire (auth) — passe par le filtre IA
 DELETE /comments/{id}                      → supprimer son propre commentaire (auth)
 """
+import logging
 import os
 from datetime import datetime
 
@@ -18,9 +19,9 @@ from deps import get_current_user
 import models
 
 router = APIRouter(tags=["Commentaires"])
+logger = logging.getLogger(__name__)
 
 AI_URL = os.getenv("AI_SERVICE_URL", "http://ai:8001")
-TOXICITY_THRESHOLD = 0.5
 
 
 class CommentCreate(BaseModel):
@@ -42,13 +43,18 @@ def _comment_to_dict(c: models.Comment, include_status: bool = False) -> dict:
 
 
 def _moderate(text: str) -> tuple[float | None, bool]:
-    """Interroge le service IA. Si indisponible, on met en attente par précaution plutôt que de publier en aveugle."""
+    """Interroge le service IA et lui délègue entièrement la décision de modération
+    (`flagged`) — le seuil de toxicité n'est donc défini qu'à un seul endroit
+    (backend/ai), au lieu d'être dupliqué ici avec le risque de désynchronisation
+    que ça implique. Si le service est indisponible, on met en attente par
+    précaution plutôt que de publier en aveugle."""
     try:
         resp = requests.post(f"{AI_URL}/moderate-comment", json={"text": text}, timeout=8)
         resp.raise_for_status()
-        score = float(resp.json()["score"])
-        return score, score >= TOXICITY_THRESHOLD
+        data = resp.json()
+        return float(data["score"]), bool(data["flagged"])
     except Exception:
+        logger.warning("Service de modération IA indisponible, commentaire mis en attente par précaution", exc_info=True)
         return None, True
 
 

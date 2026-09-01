@@ -1,4 +1,5 @@
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
+import { registerUnauthorizedHandler } from '../services/api';
 
 const AuthContext = createContext(null);
 
@@ -26,6 +27,16 @@ export function AuthProvider({ children }) {
     localStorage.removeItem('auth_user');
     localStorage.removeItem('auth_token');
   }
+
+  // Déloguement global déclenché par apiFetch dès qu'un appel API renvoie 401
+  // (token expiré ou invalide), peu importe quel composant a fait l'appel.
+  // Les pages protégées redirigent déjà vers /login dès que `user` devient null
+  // (`if (!user) return <Navigate to="/login" />`), donc pas besoin de naviguer
+  // explicitement ici.
+  useEffect(() => {
+    registerUnauthorizedHandler(logout);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function updateUser(patch) {
     setUser(prev => {

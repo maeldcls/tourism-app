@@ -10,6 +10,7 @@ contente de l'appeler. Ajouter un mode = ajouter une classe + une entrée dans
 le dict, sans toucher au code existant.
 """
 import json
+import logging
 import math
 import os
 from abc import ABC, abstractmethod
@@ -21,6 +22,8 @@ from sqlalchemy.orm import Session
 
 import models
 from routes.ratings import MIN_VOTES_FOR_SCORE, _score as _rating_score
+
+logger = logging.getLogger(__name__)
 
 AI_URL = os.getenv("AI_SERVICE_URL", "http://ai:8001")
 TASTE_CACHE_VERSION = 1  # incrémenter pour invalider tous les caches user
@@ -232,6 +235,7 @@ class PersonalizedStrategy(RecommendationStrategy):
             resp.raise_for_status()
             result = resp.json()
         except Exception:
+            logger.warning("Échec de l'appel au service IA (%s) pour le user %s", AI_URL, user.id, exc_info=True)
             return None
 
         profile = {

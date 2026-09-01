@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 
 from database import get_db
 from deps import get_current_user, get_current_user_optional
-from friend_utils import find_friendship, relation_status
+from services.friend_utils import find_friendship, relation_status
 from services.image_processor import ImageProcessor
 import models
 

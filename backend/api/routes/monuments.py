@@ -10,6 +10,7 @@ GET  /monuments/nearby       → page MapPage : monuments proches d'une position
 GET  /monuments/{id}         → page Monument : détail d'un monument
 POST /monuments/upsert       → crée ou retourne le monument (par osm_id), fetch images si nécessaire
 """
+import logging
 import httpx
 from math import radians, cos, sin, asin, sqrt
 from typing import Optional
@@ -22,6 +23,7 @@ from repositories.monument_repository import MonumentRepository
 import models
 
 router = APIRouter(prefix="/monuments", tags=["Monuments"])
+logger = logging.getLogger(__name__)
 
 
 class MonumentBody(BaseModel):
@@ -69,7 +71,7 @@ async def _fetch_wikimedia_image_url(page_title: str) -> Optional[str]:
             if info:
                 return info[0].get("url")
     except Exception:
-        pass
+        logger.warning("Échec de récupération de l'image Wikimedia pour %r", page_title, exc_info=True)
     return None
 
 
@@ -99,7 +101,7 @@ async def _fetch_wikipedia_thumbnail(wiki_tag: str) -> Optional[str]:
             if thumb.get("source"):
                 return thumb["source"]
     except Exception:
-        pass
+        logger.warning("Échec de récupération de la miniature Wikipedia pour %r", wiki_tag, exc_info=True)
     return None
 
 

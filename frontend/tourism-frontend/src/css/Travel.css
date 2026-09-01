@@ -69,6 +69,19 @@
   transform: translateY(-1px);
 }
 
+/* ── Erreur ─────────────────────────────────────────────────────────────────── */
+
+.travel-banner-error {
+  background: #fbeeed;
+  color: #c0413c;
+  border: 1px solid #e9c2c0;
+  border-radius: 12px;
+  padding: 0.65rem 0.9rem;
+  margin-bottom: 1rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
 /* ── Create panel ───────────────────────────────────────────────────────────── */
 
 .travel-create-panel {

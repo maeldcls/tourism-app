@@ -12,11 +12,10 @@ from sqlalchemy.orm import Session
 from collections import Counter
 from database import get_db
 from deps import get_current_user
+from services.visit_utils import XP_PAR_NIVEAU
 import models
 
 router = APIRouter(prefix="/stats", tags=["Statistiques"])
-
-XP_PAR_NIVEAU = 500
 
 
 # ── GET /stats/{user_id} ───────────────────────────────────────────────────────

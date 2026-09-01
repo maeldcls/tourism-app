@@ -18,7 +18,7 @@ from datetime import datetime
 
 from database import get_db
 from deps import get_current_user
-from friend_utils import find_friendship, relation_status
+from services.friend_utils import find_friendship, relation_status
 import models
 
 router = APIRouter(prefix="/friends", tags=["Amis"])

@@ -66,6 +66,11 @@ body.mappage-body-lock {
   background: var(--map-plum);
 }
 
+.mappage-trip-banner--error {
+  background: #c0413c;
+  cursor: pointer;
+}
+
 .mappage-trip-banner-actions {
   display: flex;
   align-items: center;

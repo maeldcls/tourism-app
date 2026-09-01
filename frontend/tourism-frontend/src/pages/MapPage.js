@@ -9,6 +9,7 @@ import MapSearchBar from '../components/MapSearchBar';
 import AddCustomPointSheet from '../components/AddCustomPointSheet';
 import PointsManagerSheet from '../components/PointsManagerSheet';
 import { useAuth } from '../context/AuthContext';
+import { apiFetch } from '../services/api';
 import API_URL from '../config';
 import { makePointIcon } from '../utils/pointIcons';
 
@@ -178,8 +179,10 @@ function cellsInBounds({ south, west, north, east }) {
 
 // ── Requête bbox vers notre API ───────────────────────────────────────────────
 async function fetchApiBbox(south, west, north, east) {
-  const url = `${API}/monuments/bbox?south=${south}&west=${west}&north=${north}&east=${east}`;
-  const res = await fetch(url, { signal: AbortSignal.timeout(10_000) });
+  const res = await apiFetch(
+    `/monuments/bbox?south=${south}&west=${west}&north=${north}&east=${east}`,
+    { signal: AbortSignal.timeout(10_000) }
+  );
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return await res.json(); // [{ id, name, latitude, longitude, category, city, description }]
 }
@@ -258,6 +261,7 @@ export default function MapPage() {
   const [showPointsManager, setShowPointsManager] = useState(false); // bottom-sheet de gestion des points
   const [sharingLocation, setSharingLocation] = useState(false); // je partage ma position sur le trajet affiché
   const [memberLocations, setMemberLocations] = useState([]); // positions récentes des membres du trajet (soi-même inclus)
+  const [actionError, setActionError] = useState(null);
 
   // Cache en mémoire : survit aux re-renders, pas besoin de re-fetch
   const poisMapRef   = useRef(new Map()); // id → poi (accumulation)
@@ -288,11 +292,13 @@ export default function MapPage() {
 
   const pushLocation = useCallback((tripId, lat, lng) => {
     if (!token) return;
-    fetch(`${API}/trips/${tripId}/location`, {
+    // Best-effort : un ping de position toutes les 8-20s, une erreur ponctuelle
+    // (réseau flaky) ne justifie pas d'interrompre l'utilisateur avec un banner —
+    // seule une trace console reste utile pour le debug.
+    apiFetch(`/trips/${tripId}/location`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify({ latitude: lat, longitude: lng }),
-    }).catch(() => {});
+    }).catch(err => console.warn('Échec de mise à jour de la position partagée', err));
   }, [token]);
 
   const startSharing = useCallback((tripId) => {
@@ -323,11 +329,10 @@ export default function MapPage() {
     }
     lastPosRef.current = null;
     if (tripId && token) {
-      fetch(`${API}/trips/${tripId}/location`, {
+      apiFetch(`/trips/${tripId}/location`, {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
         keepalive: true,
-      }).catch(() => {});
+      }).catch(err => console.warn('Échec de l\'arrêt du partage de position', err));
     }
   }, [token]);
 
@@ -355,7 +360,9 @@ export default function MapPage() {
     let firstLoad = true;
 
     function refresh() {
-      fetch(`${API}/trips/${trip.id}/locations`, { headers: { Authorization: `Bearer ${token}` } })
+      // Polling toutes les 8s : une erreur ponctuelle ne doit pas faire clignoter
+      // un banner d'erreur, seule une trace console reste utile pour le debug.
+      apiFetch(`/trips/${trip.id}/locations`)
         .then(r => (r.ok ? r.json() : []))
         .then(data => {
           if (cancelled) return;
@@ -369,7 +376,7 @@ export default function MapPage() {
             }
           }
         })
-        .catch(() => {});
+        .catch(err => console.warn('Échec de récupération des positions des membres', err));
     }
 
     refresh();
@@ -389,11 +396,10 @@ export default function MapPage() {
   useEffect(() => {
     function handleUnload() {
       if (sharingRef.current && tripIdRef.current && token) {
-        fetch(`${API}/trips/${tripIdRef.current}/location`, {
+        apiFetch(`/trips/${tripIdRef.current}/location`, {
           method: 'DELETE',
-          headers: { Authorization: `Bearer ${token}` },
           keepalive: true,
-        }).catch(() => {});
+        }).catch(() => {}); // page en cours de fermeture : rien d'actionnable à faire d'une erreur ici
       }
     }
     window.addEventListener('beforeunload', handleUnload);
@@ -413,35 +419,41 @@ export default function MapPage() {
   // personnalisés) — jeu de données réduit, pas besoin de grille de tuiles.
   useEffect(() => {
     if (!user || !token) return;
-    fetch(`${API}/trips/user/${user.id}/points`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then(r => r.ok ? r.json() : [])
+    apiFetch(`/trips/user/${user.id}/points`)
+      .then(r => {
+        if (!r.ok) throw new Error();
+        return r.json();
+      })
       .then(data => setMyPoints(Array.isArray(data) ? data : []))
-      .catch(() => {});
+      .catch(() => setActionError('Impossible de charger vos points personnalisés.'));
   }, [user, token]);
 
   // Liste légère des trajets de l'utilisateur, pour le menu "déplacer vers…"
   // du panneau de gestion des points.
   useEffect(() => {
     if (!user || !token) return;
-    fetch(`${API}/trips/user/${user.id}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then(r => r.ok ? r.json() : [])
+    apiFetch(`/trips/user/${user.id}`)
+      .then(r => {
+        if (!r.ok) throw new Error();
+        return r.json();
+      })
       .then(data => setMyTrips(Array.isArray(data) ? data.map(t => ({ id: t.id, name: t.name })) : []))
-      .catch(() => {});
+      .catch(() => setActionError('Impossible de charger la liste de vos trajets.'));
   }, [user, token]);
 
   // Trajet sélectionné depuis la page Voyages → on récupère le tracé (ORS)
   useEffect(() => {
     if (!trip) { setTripRoute([]); return; }
-    fetch(`${API}/trips/${trip.id}/route`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then(r => r.ok ? r.json() : { coordinates: [] })
+    apiFetch(`/trips/${trip.id}/route`)
+      .then(r => {
+        // 503 (service non configuré) / 502 (échec ORS) : pas une erreur inattendue,
+        // juste "pas de tracé" — mais on prévient quand même, plutôt que de laisser
+        // croire que le trajet n'a simplement pas assez de points pour un itinéraire.
+        if (!r.ok) { setActionError("Impossible de calculer l'itinéraire de ce trajet."); return { coordinates: [] }; }
+        return r.json();
+      })
       .then(data => setTripRoute(data.coordinates || []))
-      .catch(() => setTripRoute([]));
+      .catch(() => { setActionError("Impossible de calculer l'itinéraire de ce trajet."); setTripRoute([]); });
   }, [trip, token]);
 
   const recenterOnUser = useCallback(() => {
@@ -621,29 +633,26 @@ export default function MapPage() {
     setMyPoints(prev => prev.map(p => samePoint(p, point) ? { ...p, is_hidden: nextHidden } : p));
     try {
       const url = point.kind === 'monument'
-        ? `${API}/trips/${point.trip_id}/monuments/${point.monument_id}`
-        : `${API}/custom-points/${point.custom_point_id}`;
-      const r = await fetch(url, {
+        ? `/trips/${point.trip_id}/monuments/${point.monument_id}`
+        : `/custom-points/${point.custom_point_id}`;
+      const r = await apiFetch(url, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ is_hidden: nextHidden }),
       });
       if (!r.ok) throw new Error();
     } catch {
+      setActionError('La visibilité de ce point n\'a pas pu être mise à jour.');
       setMyPoints(prev => prev.map(p => samePoint(p, point) ? { ...p, is_hidden: point.is_hidden } : p));
     }
   }
 
   async function handleDeleteCustomPoint(point) {
     try {
-      const r = await fetch(`${API}/custom-points/${point.custom_point_id}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const r = await apiFetch(`/custom-points/${point.custom_point_id}`, { method: 'DELETE' });
       if (!r.ok) throw new Error();
       setMyPoints(prev => prev.filter(p => !samePoint(p, point)));
     } catch {
-      // laissé tel quel en cas d'échec réseau — le point reste affiché dans le panneau
+      setActionError('Impossible de supprimer ce point — le point reste affiché.');
     }
   }
 
@@ -658,18 +667,18 @@ export default function MapPage() {
       : p));
     try {
       const url = point.kind === 'monument'
-        ? `${API}/trips/${point.trip_id}/monuments/${point.monument_id}/move`
-        : `${API}/custom-points/${point.custom_point_id}`;
+        ? `/trips/${point.trip_id}/monuments/${point.monument_id}/move`
+        : `/custom-points/${point.custom_point_id}`;
       const body = point.kind === 'monument'
         ? { target_trip_id: targetTripId }
         : targetTripId == null ? { unassign_trip: true } : { trip_id: targetTripId };
-      const r = await fetch(url, {
+      const r = await apiFetch(url, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify(body),
       });
       if (!r.ok) throw new Error();
     } catch {
+      setActionError('Impossible de déplacer ce point vers ce trajet.');
       setMyPoints(prevPoints);
     }
   }
@@ -684,6 +693,13 @@ export default function MapPage() {
       />
 
       {loading && <div className="mappage-loading">Chargement…</div>}
+
+      {actionError && (
+        <div className="mappage-trip-banner mappage-trip-banner--error" onClick={() => setActionError(null)}>
+          <span>{actionError}</span>
+          <button onClick={() => setActionError(null)} aria-label="Fermer">×</button>
+        </div>
+      )}
 
       {trip && (
         <div className="mappage-trip-banner">

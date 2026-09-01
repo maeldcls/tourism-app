@@ -31,6 +31,19 @@ function AdminRoute({ children }) {
   return children;
 }
 
+// Garde de routing pour les pages qui exigent un compte (Travel, Friends,
+// VisitedPlaces...). Ces pages ne vérifiaient pas `user` elles-mêmes : sans
+// session, leurs fetch restaient no-op et la page affichait un état vide sans
+// jamais rediriger — invisible tant qu'on était connecté, mais devenu un vrai
+// trou une fois le déloguement automatique sur 401 ajouté (voir AuthContext) :
+// un token expiré déloguait bien l'utilisateur, mais le laissait sur une page
+// désormais cassée au lieu de le renvoyer vers /login.
+function ProtectedRoute({ children }) {
+  const { user } = useAuth();
+  if (!user) return <Navigate to="/login" replace />;
+  return children;
+}
+
 function Layout() {
   const { pathname } = useLocation();
   const showNavbar = !NO_NAVBAR.includes(pathname);
@@ -43,12 +56,12 @@ function Layout() {
         <Route path="/register" element={<Register />} />
         <Route path="/destinations" element={<Destinations />} />
         <Route path="/map" element={<MapPage />} />
-        <Route path="/travel" element={<Travel />} />
+        <Route path="/travel" element={<ProtectedRoute><Travel /></ProtectedRoute>} />
         <Route path="/monument" element={<Monument />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/profile/:userId" element={<UserProfile />} />
-        <Route path="/friends" element={<Friends />} />
-        <Route path="/visited" element={<VisitedPlaces />} />
+        <Route path="/friends" element={<ProtectedRoute><Friends /></ProtectedRoute>} />
+        <Route path="/visited" element={<ProtectedRoute><VisitedPlaces /></ProtectedRoute>} />
         <Route path="/stats" element={<Stats />} />
         <Route path="/admin" element={<Navigate to="/admin/comments" replace />} />
         <Route path="/admin/comments" element={<AdminRoute><AdminComments /></AdminRoute>} />
