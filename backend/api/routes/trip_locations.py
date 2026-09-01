@@ -12,13 +12,13 @@ GET    /trips/{trip_id}/locations  → positions actives (non périmées) des me
 """
 from datetime import datetime, timedelta
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from database import get_db
 from deps import get_current_user
-from trip_utils import require_trip_role
+from trip_utils import get_trip
 import models
 
 router = APIRouter(prefix="/trips", tags=["Position en direct"])
@@ -33,13 +33,6 @@ class LocationUpdate(BaseModel):
     longitude: float
 
 
-def _get_trip_or_404(db: Session, trip_id: int) -> models.Trip:
-    trip = db.query(models.Trip).filter(models.Trip.id == trip_id).first()
-    if not trip:
-        raise HTTPException(status_code=404, detail="Trajet introuvable")
-    return trip
-
-
 # ── PUT /trips/{trip_id}/location ──────────────────────────────────────────────
 @router.put("/{trip_id}/location")
 def update_location(
@@ -47,10 +40,8 @@ def update_location(
     body: LocationUpdate,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
+    trip: models.Trip = Depends(get_trip("read")),
 ):
-    trip = _get_trip_or_404(db, trip_id)
-    require_trip_role(db, trip, current_user, "read")
-
     share = db.query(models.TripLocationShare).filter(
         models.TripLocationShare.trip_id == trip_id,
         models.TripLocationShare.user_id == current_user.id,
@@ -72,10 +63,8 @@ def stop_sharing_location(
     trip_id: int,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
+    trip: models.Trip = Depends(get_trip("read")),
 ):
-    trip = _get_trip_or_404(db, trip_id)
-    require_trip_role(db, trip, current_user, "read")
-
     share = db.query(models.TripLocationShare).filter(
         models.TripLocationShare.trip_id == trip_id,
         models.TripLocationShare.user_id == current_user.id,
@@ -94,11 +83,8 @@ def stop_sharing_location(
 def list_locations(
     trip_id: int,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user),
+    trip: models.Trip = Depends(get_trip("read")),
 ):
-    trip = _get_trip_or_404(db, trip_id)
-    require_trip_role(db, trip, current_user, "read")
-
     cutoff = datetime.utcnow() - timedelta(seconds=STALE_AFTER_SECONDS)
     shares = db.query(models.TripLocationShare).filter(
         models.TripLocationShare.trip_id == trip_id,

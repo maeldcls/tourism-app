@@ -5,48 +5,29 @@ GET   /profile/{user_id} → infos user : username, XP, level, badges (limité s
 PATCH /profile/me        → modifier son propre profil (username, avatar, public/privé)
 """
 import os
-import uuid
-from io import BytesIO
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
-from PIL import Image, ImageOps
 from sqlalchemy.orm import Session
 
 from database import get_db
 from deps import get_current_user, get_current_user_optional
 from friend_utils import find_friendship, relation_status
+from services.image_processor import ImageProcessor
 import models
 
 router = APIRouter(prefix="/profile", tags=["Profil"])
 
 AVATAR_UPLOAD_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "uploads", "avatars")
-os.makedirs(AVATAR_UPLOAD_DIR, exist_ok=True)
 
 MAX_AVATAR_SIZE = 5 * 1024 * 1024  # 5 Mo
 ALLOWED_CONTENT_TYPES = {"image/jpeg", "image/png", "image/webp"}
 AVATAR_DIMENSION = 512
 JPEG_QUALITY = 85
 
-
-def _save_avatar(file_bytes: bytes) -> str:
-    """Recadre en carré (centre), redimensionne, applique la rotation EXIF puis supprime les métadonnées."""
-    try:
-        img = Image.open(BytesIO(file_bytes))
-        img = ImageOps.exif_transpose(img)
-        img = img.convert("RGB")
-    except Exception:
-        raise HTTPException(status_code=400, detail="Fichier image invalide")
-
-    w, h = img.size
-    side = min(w, h)
-    left, top = (w - side) // 2, (h - side) // 2
-    img = img.crop((left, top, left + side, top + side))
-    img = img.resize((AVATAR_DIMENSION, AVATAR_DIMENSION))
-
-    filename = f"{uuid.uuid4().hex}.jpg"
-    img.save(os.path.join(AVATAR_UPLOAD_DIR, filename), "JPEG", quality=JPEG_QUALITY)
-    return filename
+avatar_processor = ImageProcessor(
+    AVATAR_UPLOAD_DIR, max_dimension=AVATAR_DIMENSION, jpeg_quality=JPEG_QUALITY, square_crop=True
+)
 
 
 # ── GET /profile/{user_id} ─────────────────────────────────────────────────────
@@ -131,7 +112,7 @@ async def update_my_profile(
         file_bytes = await avatar.read()
         if len(file_bytes) > MAX_AVATAR_SIZE:
             raise HTTPException(status_code=400, detail="Image trop volumineuse (max 5 Mo)")
-        filename = _save_avatar(file_bytes)
+        filename = avatar_processor.process_and_save(file_bytes)
         current_user.avatar_url = f"/uploads/avatars/{filename}"
 
     db.commit()

@@ -11,6 +11,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from collections import Counter
 from database import get_db
+from deps import get_current_user
 import models
 
 router = APIRouter(prefix="/stats", tags=["Statistiques"])
@@ -21,7 +22,14 @@ XP_PAR_NIVEAU = 500
 # ── GET /stats/{user_id} ───────────────────────────────────────────────────────
 # Page : Stats — tout ce qui s'affiche sur la page statistiques
 @router.get("/{user_id}")
-def get_stats(user_id: int, db: Session = Depends(get_db)):
+def get_stats(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    if user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Accès refusé")
+
     user = db.query(models.User).filter(models.User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User introuvable")

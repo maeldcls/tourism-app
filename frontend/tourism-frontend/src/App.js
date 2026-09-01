@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import './css/App.css';
 
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import Navbar from './components/Navbar';
 import Home from './pages/Home';
 import Destinations from './pages/Destinations';
@@ -20,6 +20,16 @@ import AdminTags from './pages/AdminTags';
 import AdminPhotos from './pages/AdminPhotos';
 
 const NO_NAVBAR = ['/login', '/register'];
+
+// Garde de routing : bloque l'accès aux pages /admin/* avant même leur montage
+// (auparavant chaque page admin vérifiait is_admin elle-même, mais le routeur
+// laissait n'importe qui naviguer dessus — la vérification n'était que côté UI).
+function AdminRoute({ children }) {
+  const { user } = useAuth();
+  if (!user) return <Navigate to="/login" replace />;
+  if (!user.is_admin) return <Navigate to="/" replace />;
+  return children;
+}
 
 function Layout() {
   const { pathname } = useLocation();
@@ -41,9 +51,9 @@ function Layout() {
         <Route path="/visited" element={<VisitedPlaces />} />
         <Route path="/stats" element={<Stats />} />
         <Route path="/admin" element={<Navigate to="/admin/comments" replace />} />
-        <Route path="/admin/comments" element={<AdminComments />} />
-        <Route path="/admin/tags" element={<AdminTags />} />
-        <Route path="/admin/photos" element={<AdminPhotos />} />
+        <Route path="/admin/comments" element={<AdminRoute><AdminComments /></AdminRoute>} />
+        <Route path="/admin/tags" element={<AdminRoute><AdminTags /></AdminRoute>} />
+        <Route path="/admin/photos" element={<AdminRoute><AdminPhotos /></AdminRoute>} />
       </Routes>
       {showNavbar && <Navbar />}
     </>

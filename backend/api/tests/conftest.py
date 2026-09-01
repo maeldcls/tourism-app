@@ -10,6 +10,10 @@ import os
 # Permet à pytest de trouver les modules du projet (models, database, main…)
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
+# security.py exige SECRET_KEY (plus de valeur par défaut en dur) : on en fixe une
+# pour les runs locaux hors CI, sans écraser celle que la CI définit déjà.
+os.environ.setdefault("SECRET_KEY", "test-secret-key-not-for-prod")
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine

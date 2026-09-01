@@ -17,6 +17,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from database import get_db
+from deps import get_current_user
+from repositories.monument_repository import MonumentRepository
 import models
 
 router = APIRouter(prefix="/monuments", tags=["Monuments"])
@@ -126,61 +128,48 @@ async def _collect_images(body: MonumentUpsertBody) -> list[str]:
 
 # ── POST /monuments/upsert ─────────────────────────────────────────────────────
 @router.post("/upsert")
-async def upsert_monument(body: MonumentUpsertBody, db: Session = Depends(get_db)):
+async def upsert_monument(
+    body: MonumentUpsertBody,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
     """
     Crée le monument s'il n'existe pas (par osm_id), sinon retourne l'existant.
     Fetche les images la première fois uniquement.
     """
-    m = db.query(models.Monument).filter(models.Monument.osm_id == body.osm_id).first()
+    repo = MonumentRepository(db)
+    m = repo.get_by_osm_id(body.osm_id)
 
     if not m:
-        m = models.Monument(
+        m = repo.create(
+            name=body.name, city=body.city, description=body.description,
+            category=body.category, latitude=body.latitude, longitude=body.longitude,
             osm_id=body.osm_id,
-            name=body.name,
-            city=body.city,
-            description=body.description,
-            category=body.category,
-            latitude=body.latitude,
-            longitude=body.longitude,
         )
-        db.add(m)
-        db.commit()
-        db.refresh(m)
-
         # Fetch images uniquement à la création
         image_urls = await _collect_images(body)
-        for url in image_urls:
-            db.add(models.MonumentImage(monument_id=m.id, image_url=url))
-        if image_urls:
-            db.commit()
-            db.refresh(m)
+        repo.add_images(m, image_urls)
 
     return _monument_to_dict(m, include_images=True)
 
 
 # ── POST /monuments ────────────────────────────────────────────────────────────
 @router.post("", status_code=201)
-def create_monument(body: MonumentBody, db: Session = Depends(get_db)):
+def create_monument(
+    body: MonumentBody,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
     """Crée un monument s'il n'existe pas déjà (même nom + coords proches)."""
-    existing = db.query(models.Monument).filter(
-        models.Monument.name == body.name,
-        models.Monument.latitude == body.latitude,
-        models.Monument.longitude == body.longitude,
-    ).first()
+    repo = MonumentRepository(db)
+    existing = repo.find_by_name_and_coords(body.name, body.latitude, body.longitude)
     if existing:
         return _monument_to_dict(existing)
 
-    m = models.Monument(
-        name=body.name,
-        city=body.city,
-        description=body.description,
-        category=body.category,
-        latitude=body.latitude,
-        longitude=body.longitude,
+    m = repo.create(
+        name=body.name, city=body.city, description=body.description,
+        category=body.category, latitude=body.latitude, longitude=body.longitude,
     )
-    db.add(m)
-    db.commit()
-    db.refresh(m)
     return _monument_to_dict(m)
 
 
@@ -219,12 +208,7 @@ def get_monuments(
     q: Optional[str] = Query(None, description="Recherche par nom"),
     db: Session = Depends(get_db),
 ):
-    query = db.query(models.Monument)
-    if city:
-        query = query.filter(models.Monument.city.ilike(f"%{city}%"))
-    if q:
-        query = query.filter(models.Monument.name.ilike(f"%{q}%")).limit(8)
-    monuments = query.all()
+    monuments = MonumentRepository(db).list_filtered(city, q)
     return [_monument_to_dict(m) for m in monuments]
 
 
@@ -238,10 +222,7 @@ def get_monuments_bbox(
     east:  float = Query(..., description="Longitude est de la bbox"),
     db: Session = Depends(get_db),
 ):
-    monuments = db.query(models.Monument).filter(
-        models.Monument.latitude.between(south, north),
-        models.Monument.longitude.between(west, east),
-    ).limit(500).all()
+    monuments = MonumentRepository(db).list_in_bbox(south, west, north, east)
     return [_monument_to_dict(m) for m in monuments]
 
 
@@ -254,10 +235,7 @@ def get_nearby_monuments(
     radius_km: float = Query(5.0, description="Rayon de recherche en km"),
     db: Session = Depends(get_db),
 ):
-    monuments = db.query(models.Monument).filter(
-        models.Monument.latitude.isnot(None),
-        models.Monument.longitude.isnot(None),
-    ).all()
+    monuments = MonumentRepository(db).list_with_coords()
 
     nearby = []
     for m in monuments:
@@ -275,7 +253,7 @@ def get_nearby_monuments(
 # Page : Monument — détail complet d'un monument
 @router.get("/{monument_id}")
 def get_monument(monument_id: int, db: Session = Depends(get_db)):
-    m = db.query(models.Monument).filter(models.Monument.id == monument_id).first()
+    m = MonumentRepository(db).get_by_id(monument_id)
     if not m:
         raise HTTPException(status_code=404, detail="Monument introuvable")
 

@@ -7,18 +7,23 @@ POST   /trips/{trip_id}/monuments                 → ajouter un monument au tra
 PATCH  /trips/{trip_id}/monuments/{monument_id}   → marquer un monument comme visité (ou non)
 DELETE /trips/{trip_id}/monuments/{monument_id}   → retirer un monument du trajet
 DELETE /trips/{trip_id}                           → supprimer un trajet
+
+L'accès aux données passe par TripRepository/MonumentRepository (repositories/) :
+les handlers ci-dessous se limitent à valider la requête, vérifier les permissions
+(via trip_utils) et orchestrer/sérialiser — aucun db.query direct.
 """
 import os
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import Optional
 import requests
 from database import get_db
 from deps import get_current_user
-from trip_utils import get_trip_role, require_trip_role, accessible_trip_ids
+from trip_utils import get_trip_role, require_trip_role, load_trip_or_404, get_trip, accessible_trip_ids
 from visit_utils import record_visit
+from repositories.trip_repository import TripRepository
+from repositories.monument_repository import MonumentRepository
 import models
 
 router = APIRouter(prefix="/trips", tags=["Trajets"])
@@ -28,7 +33,6 @@ ORS_URL = "https://api.openrouteservice.org/v2/directions/foot-walking/geojson"
 
 
 class TripCreate(BaseModel):
-    user_id: int
     name: str
     description: Optional[str] = None
 
@@ -77,13 +81,9 @@ def get_user_trips(
     if user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Accès refusé")
 
+    repo = TripRepository(db)
     trip_ids = accessible_trip_ids(db, user_id)
-    trips = (
-        db.query(models.Trip)
-        .filter(models.Trip.id.in_(trip_ids))
-        .order_by(models.Trip.created_at.desc())
-        .all()
-    )
+    trips = repo.list_by_ids(trip_ids)
 
     return [
         {
@@ -167,12 +167,10 @@ def get_user_points(
     if user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Accès refusé")
 
+    repo = TripRepository(db)
     trip_ids = accessible_trip_ids(db, user_id)
-    tms = (
-        db.query(models.TripMonument)
-        .filter(models.TripMonument.trip_id.in_(trip_ids))
-        .all()
-    )
+
+    tms = repo.list_trip_monuments_for_trips(trip_ids)
     monument_points = [
         {
             "kind": "monument",
@@ -194,16 +192,7 @@ def get_user_points(
         if tm.monument and tm.monument.latitude is not None and tm.monument.longitude is not None
     ]
 
-    custom = (
-        db.query(models.CustomPoint)
-        .filter(
-            or_(
-                models.CustomPoint.trip_id.in_(trip_ids),
-                and_(models.CustomPoint.user_id == user_id, models.CustomPoint.trip_id.is_(None)),
-            )
-        )
-        .all()
-    )
+    custom = repo.list_custom_points_for_trips_or_user(trip_ids, user_id)
     custom_points = [
         {
             "kind": "custom",
@@ -229,19 +218,12 @@ def get_user_points(
 
 # ── POST /trips ────────────────────────────────────────────────────────────────
 @router.post("", status_code=201)
-def create_trip(body: TripCreate, db: Session = Depends(get_db)):
-    user = db.query(models.User).filter(models.User.id == body.user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User introuvable")
-
-    trip = models.Trip(
-        user_id=body.user_id,
-        name=body.name,
-        description=body.description,
-    )
-    db.add(trip)
-    db.commit()
-    db.refresh(trip)
+def create_trip(
+    body: TripCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    trip = TripRepository(db).create(current_user.id, body.name, body.description)
     return {"id": trip.id, "name": trip.name, "status": trip.status, "created_at": trip.created_at}
 
 
@@ -251,32 +233,18 @@ def add_monument_to_trip(
     trip_id: int,
     body: TripMonumentAdd,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user),
+    trip: models.Trip = Depends(get_trip("write")),
 ):
-    trip = db.query(models.Trip).filter(models.Trip.id == trip_id).first()
-    if not trip:
-        raise HTTPException(status_code=404, detail="Trajet introuvable")
-    require_trip_role(db, trip, current_user, "write")
+    repo = TripRepository(db)
 
-    monument = db.query(models.Monument).filter(models.Monument.id == body.monument_id).first()
+    monument = MonumentRepository(db).get_by_id(body.monument_id)
     if not monument:
         raise HTTPException(status_code=404, detail="Monument introuvable")
 
-    existing = db.query(models.TripMonument).filter(
-        models.TripMonument.trip_id == trip_id,
-        models.TripMonument.monument_id == body.monument_id,
-    ).first()
-    if existing:
+    if repo.get_trip_monument(trip_id, body.monument_id):
         raise HTTPException(status_code=409, detail="Monument déjà dans ce trajet")
 
-    count = db.query(models.TripMonument).filter(models.TripMonument.trip_id == trip_id).count()
-    tm = models.TripMonument(
-        trip_id=trip_id,
-        monument_id=body.monument_id,
-        order=count,
-    )
-    db.add(tm)
-    db.commit()
+    repo.add_monument(trip_id, body.monument_id)
     return {"trip_id": trip_id, "monument_id": body.monument_id}
 
 
@@ -287,17 +255,10 @@ def update_trip_monument(
     monument_id: int,
     body: TripMonumentUpdate,
     db: Session = Depends(get_db),
+    trip: models.Trip = Depends(get_trip("write")),
     current_user: models.User = Depends(get_current_user),
 ):
-    trip = db.query(models.Trip).filter(models.Trip.id == trip_id).first()
-    if not trip:
-        raise HTTPException(status_code=404, detail="Trajet introuvable")
-    require_trip_role(db, trip, current_user, "write")
-
-    tm = db.query(models.TripMonument).filter(
-        models.TripMonument.trip_id == trip_id,
-        models.TripMonument.monument_id == monument_id,
-    ).first()
+    tm = TripRepository(db).get_trip_monument(trip_id, monument_id)
     if not tm:
         raise HTTPException(status_code=404, detail="Monument non trouvé dans ce trajet")
 
@@ -331,49 +292,24 @@ def move_monument_to_trip(
     monument_id: int,
     body: TripMonumentMove,
     db: Session = Depends(get_db),
+    trip: models.Trip = Depends(get_trip("write")),
     current_user: models.User = Depends(get_current_user),
 ):
-    trip = db.query(models.Trip).filter(models.Trip.id == trip_id).first()
-    if not trip:
-        raise HTTPException(status_code=404, detail="Trajet introuvable")
-    require_trip_role(db, trip, current_user, "write")
-
-    target_trip = db.query(models.Trip).filter(models.Trip.id == body.target_trip_id).first()
-    if not target_trip:
-        raise HTTPException(status_code=404, detail="Trajet cible introuvable")
+    target_trip = load_trip_or_404(db, body.target_trip_id)
     require_trip_role(db, target_trip, current_user, "write")
 
-    tm = db.query(models.TripMonument).filter(
-        models.TripMonument.trip_id == trip_id,
-        models.TripMonument.monument_id == monument_id,
-    ).first()
+    repo = TripRepository(db)
+    tm = repo.get_trip_monument(trip_id, monument_id)
     if not tm:
         raise HTTPException(status_code=404, detail="Monument non trouvé dans ce trajet")
 
     if trip_id == body.target_trip_id:
         return {"trip_id": trip_id, "monument_id": monument_id}
 
-    existing = db.query(models.TripMonument).filter(
-        models.TripMonument.trip_id == body.target_trip_id,
-        models.TripMonument.monument_id == monument_id,
-    ).first()
-    if existing:
+    if repo.get_trip_monument(body.target_trip_id, monument_id):
         raise HTTPException(status_code=409, detail="Monument déjà dans le trajet cible")
 
-    count = db.query(models.TripMonument).filter(models.TripMonument.trip_id == body.target_trip_id).count()
-    new_tm = models.TripMonument(
-        trip_id=body.target_trip_id,
-        monument_id=monument_id,
-        order=count,
-        day=None,
-        is_visited=tm.is_visited,
-        icon=tm.icon,
-        color=tm.color,
-        is_hidden=tm.is_hidden,
-    )
-    db.delete(tm)
-    db.add(new_tm)
-    db.commit()
+    repo.move_trip_monument(tm, body.target_trip_id)
     return {"trip_id": body.target_trip_id, "monument_id": monument_id}
 
 
@@ -383,21 +319,13 @@ def remove_monument_from_trip(
     trip_id: int,
     monument_id: int,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user),
+    trip: models.Trip = Depends(get_trip("write")),
 ):
-    trip = db.query(models.Trip).filter(models.Trip.id == trip_id).first()
-    if not trip:
-        raise HTTPException(status_code=404, detail="Trajet introuvable")
-    require_trip_role(db, trip, current_user, "write")
-
-    tm = db.query(models.TripMonument).filter(
-        models.TripMonument.trip_id == trip_id,
-        models.TripMonument.monument_id == monument_id,
-    ).first()
+    repo = TripRepository(db)
+    tm = repo.get_trip_monument(trip_id, monument_id)
     if not tm:
         raise HTTPException(status_code=404, detail="Monument non trouvé dans ce trajet")
-    db.delete(tm)
-    db.commit()
+    repo.remove_trip_monument(tm)
     return {"detail": "Monument retiré du trajet"}
 
 
@@ -407,15 +335,9 @@ def remove_monument_from_trip(
 def delete_trip(
     trip_id: int,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user),
+    trip: models.Trip = Depends(get_trip("host")),
 ):
-    trip = db.query(models.Trip).filter(models.Trip.id == trip_id).first()
-    if not trip:
-        raise HTTPException(status_code=404, detail="Trajet introuvable")
-    if trip.user_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Seul le host peut supprimer le trajet")
-    db.delete(trip)
-    db.commit()
+    TripRepository(db).delete(trip)
     return {"detail": "Trajet supprimé"}
 
 
@@ -425,18 +347,9 @@ def update_trip_settings(
     trip_id: int,
     body: TripSettingsUpdate,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user),
+    trip: models.Trip = Depends(get_trip("write")),
 ):
-    trip = db.query(models.Trip).filter(models.Trip.id == trip_id).first()
-    if not trip:
-        raise HTTPException(status_code=404, detail="Trajet introuvable")
-    require_trip_role(db, trip, current_user, "write")
-
-    if body.use_days is not None:
-        trip.use_days = body.use_days
-    if body.day_count is not None:
-        trip.day_count = body.day_count
-    db.commit()
+    trip = TripRepository(db).update_settings(trip, body.use_days, body.day_count)
     return {"id": trip.id, "use_days": trip.use_days, "day_count": trip.day_count}
 
 
@@ -446,21 +359,11 @@ def reorder_trip_monuments(
     trip_id: int,
     body: TripReorder,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user),
+    trip: models.Trip = Depends(get_trip("write")),
 ):
-    trip = db.query(models.Trip).filter(models.Trip.id == trip_id).first()
-    if not trip:
-        raise HTTPException(status_code=404, detail="Trajet introuvable")
-    require_trip_role(db, trip, current_user, "write")
-
-    tms = {
-        tm.monument_id: tm
-        for tm in db.query(models.TripMonument).filter(models.TripMonument.trip_id == trip_id).all()
-    }
-    points = {
-        p.id: p
-        for p in db.query(models.CustomPoint).filter(models.CustomPoint.trip_id == trip_id).all()
-    }
+    repo = TripRepository(db)
+    tms = repo.trip_monuments_map(trip_id)
+    points = repo.custom_points_map(trip_id)
     for item in body.items:
         if item.kind == "custom":
             point = points.get(item.custom_point_id)
@@ -483,13 +386,8 @@ def reorder_trip_monuments(
 def get_trip_route(
     trip_id: int,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user),
+    trip: models.Trip = Depends(get_trip("read")),
 ):
-    trip = db.query(models.Trip).filter(models.Trip.id == trip_id).first()
-    if not trip:
-        raise HTTPException(status_code=404, detail="Trajet introuvable")
-    require_trip_role(db, trip, current_user, "read")
-
     # Les monuments et points personnalisés partagent un même espace d'`order`
     # (voir /reorder) : on les fusionne et on trie sur ce champ commun pour que
     # le tracé et la numérotation suivent l'ordre réel de la timeline.

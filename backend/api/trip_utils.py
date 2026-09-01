@@ -1,10 +1,12 @@
 """Helpers partagés pour déterminer le rôle d'un utilisateur sur un trajet
 (host = propriétaire, write/read = collaborateur accepté)."""
-from typing import Optional
+from typing import Callable, Optional
 
-from fastapi import HTTPException
+from fastapi import Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from database import get_db
+from deps import get_current_user
 import models
 
 ROLE_RANK = {"read": 1, "write": 2, "host": 3}
@@ -26,6 +28,37 @@ def require_trip_role(db: Session, trip: models.Trip, user: models.User, min_rol
     if role is None or ROLE_RANK[role] < ROLE_RANK[min_role]:
         raise HTTPException(status_code=403, detail="Accès refusé")
     return role
+
+
+def load_trip_or_404(db: Session, trip_id: int) -> models.Trip:
+    trip = db.query(models.Trip).filter(models.Trip.id == trip_id).first()
+    if not trip:
+        raise HTTPException(status_code=404, detail="Trajet introuvable")
+    return trip
+
+
+def get_trip(min_role: str = "read") -> Callable[..., models.Trip]:
+    """Factory de dépendance FastAPI : charge le trajet depuis {trip_id} dans l'URL et
+    vérifie que l'utilisateur courant a au moins le rôle `min_role` dessus.
+
+    Remplace le motif répété manuellement dans chaque route :
+        trip = db.query(models.Trip).filter(models.Trip.id == trip_id).first()
+        if not trip: raise HTTPException(404, ...)
+        require_trip_role(db, trip, current_user, min_role)
+
+    Usage : trip: models.Trip = Depends(get_trip("write"))
+    """
+
+    def _dependency(
+        trip_id: int,
+        db: Session = Depends(get_db),
+        current_user: models.User = Depends(get_current_user),
+    ) -> models.Trip:
+        trip = load_trip_or_404(db, trip_id)
+        require_trip_role(db, trip, current_user, min_role)
+        return trip
+
+    return _dependency
 
 
 def accessible_trip_ids(db: Session, user_id: int) -> list:

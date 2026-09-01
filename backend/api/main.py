@@ -20,7 +20,6 @@ def _isoformat_assume_utc(dt: datetime.datetime) -> str:
 
 
 ENCODERS_BY_TYPE[datetime.datetime] = _isoformat_assume_utc
-from routes_test import router as test_router
 from routes.auth import router as auth_router
 from routes.monuments import router as monuments_router
 from routes.monument_photos import router as monument_photos_router
@@ -75,9 +74,6 @@ app.include_router(friends_router)
 app.include_router(notifications_router)
 app.include_router(trip_collaborators_router)
 app.include_router(trip_locations_router)
-
-# Routes de test temporaires — à supprimer avant la prod
-app.include_router(test_router)
 
 # Fichiers statiques — photos communautaires uploadées (créé par routes.monument_photos à l'import)
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")

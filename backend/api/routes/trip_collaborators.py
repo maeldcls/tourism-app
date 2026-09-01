@@ -17,7 +17,7 @@ from pydantic import BaseModel
 
 from database import get_db
 from deps import get_current_user
-from trip_utils import require_trip_role
+from trip_utils import load_trip_or_404, get_trip
 import models
 
 router = APIRouter(prefix="/trips", tags=["Collaborateurs trajet"])
@@ -38,23 +38,13 @@ def _user_brief(u: models.User) -> dict:
     return {"id": u.id, "username": u.username, "avatar_url": u.avatar_url}
 
 
-def _get_trip_or_404(db: Session, trip_id: int) -> models.Trip:
-    trip = db.query(models.Trip).filter(models.Trip.id == trip_id).first()
-    if not trip:
-        raise HTTPException(status_code=404, detail="Trajet introuvable")
-    return trip
-
-
 # ── GET /trips/{trip_id}/collaborators ────────────────────────────────────────
 @router.get("/{trip_id}/collaborators")
 def list_collaborators(
     trip_id: int,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user),
+    trip: models.Trip = Depends(get_trip("read")),
 ):
-    trip = _get_trip_or_404(db, trip_id)
-    require_trip_role(db, trip, current_user, "read")
-
     collaborators = db.query(models.TripCollaborator).filter(models.TripCollaborator.trip_id == trip_id).all()
     return {
         "host": _user_brief(trip.user),
@@ -83,7 +73,7 @@ def add_collaborator(
     if body.role not in VALID_ROLES:
         raise HTTPException(status_code=400, detail="Rôle invalide (read ou write)")
 
-    trip = _get_trip_or_404(db, trip_id)
+    trip = load_trip_or_404(db, trip_id)
     if trip.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Seul le host peut inviter des membres")
 
@@ -128,7 +118,7 @@ def update_collaborator_role(
     if body.role not in VALID_ROLES:
         raise HTTPException(status_code=400, detail="Rôle invalide (read ou write)")
 
-    trip = _get_trip_or_404(db, trip_id)
+    trip = load_trip_or_404(db, trip_id)
     if trip.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Seul le host peut modifier les rôles")
 
@@ -151,7 +141,7 @@ def remove_collaborator(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    trip = _get_trip_or_404(db, trip_id)
+    trip = load_trip_or_404(db, trip_id)
     collab = db.query(models.TripCollaborator).filter(
         models.TripCollaborator.id == collab_id, models.TripCollaborator.trip_id == trip_id
     ).first()
@@ -222,7 +212,7 @@ def leave_trip(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    trip = _get_trip_or_404(db, trip_id)
+    trip = load_trip_or_404(db, trip_id)
     if trip.user_id == current_user.id:
         raise HTTPException(status_code=400, detail="Le host ne peut pas quitter son propre trajet")
 
