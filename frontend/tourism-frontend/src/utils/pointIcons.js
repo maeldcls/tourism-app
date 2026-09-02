@@ -68,7 +68,7 @@ export function defaultColorFor(iconKey) {
 // ── Marqueur générique pour les points de l'utilisateur (monuments-en-trajet +
 // points personnalisés) — badge circulaire coloré, glyphe blanc, distinct des
 // pins POI (teardrop) et affublé d'un check si le point est visité.
-export function makePointIcon(iconKey, color, { visited = false, selected = false, orderNumber = null } = {}) {
+export function makePointIcon(iconKey, color, { visited = false, selected = false, orderNumber = null, other = false } = {}) {
   const def = ICON_LIBRARY[iconKey] || ICON_LIBRARY.pin;
   const fill = color || def.color;
   // Un peu plus grand quand un badge d'ordre est affiché (déborde du cercle sinon).
@@ -85,6 +85,16 @@ export function makePointIcon(iconKey, color, { visited = false, selected = fals
        <path d="M${cx + 5.5} 20.2l1.8 1.8 3.2-3.6" stroke="#43a047" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`
     : '';
 
+  // Point public de quelqu'un d'autre (couche "publicPoints") — petit badge
+  // "globe" au même emplacement que le badge visité (jamais les deux en même
+  // temps : un point d'un autre utilisateur n'a pas de statut visité pour moi).
+  const otherBadge = other
+    ? `<circle cx="${cx + 8}" cy="20" r="6" fill="#fff"/>
+       <circle cx="${cx + 8}" cy="20" r="4" fill="none" stroke="${fill}" stroke-width="1.1"/>
+       <line x1="${cx + 4}" y1="20" x2="${cx + 12}" y2="20" stroke="${fill}" stroke-width="1"/>
+       <ellipse cx="${cx + 8}" cy="20" rx="1.8" ry="4" fill="none" stroke="${fill}" stroke-width="1"/>`
+    : '';
+
   // Badge numéroté (ordre de visite) — volontairement plus grand que le badge
   // "visité" pour que le chiffre reste lisible, positionné au coin opposé pour
   // ne jamais se superposer avec ce dernier.
@@ -94,9 +104,10 @@ export function makePointIcon(iconKey, color, { visited = false, selected = fals
     : '';
 
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${viewSize} ${viewSize}" width="${size}" height="${size}">
-    <circle cx="${cx}" cy="13" r="11" fill="${fill}" stroke="#fff" stroke-width="2.5"/>
+    <circle cx="${cx}" cy="13" r="11" fill="${fill}" stroke="#fff" stroke-width="2.5" ${other ? 'stroke-dasharray="2.5,2"' : ''} opacity="${other ? 0.88 : 1}"/>
     ${glyph}
     ${visitedBadge}
+    ${otherBadge}
     ${orderBadge}
   </svg>`;
 

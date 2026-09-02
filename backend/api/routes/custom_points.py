@@ -6,13 +6,13 @@ GET    /custom-points/user/{user_id}  → lister les points custom de l'utilisat
 PATCH  /custom-points/{id}            → modifier (nom, icône, couleur, trajet, visibilité...)
 DELETE /custom-points/{id}            → supprimer
 """
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import Optional
 
 from database import get_db
-from deps import get_current_user
+from deps import get_current_user, get_current_user_optional
 from services.trip_utils import require_trip_role, load_trip_or_404
 import models
 
@@ -38,11 +38,13 @@ class CustomPointUpdate(BaseModel):
     day: Optional[int] = None
     is_visited: Optional[bool] = None
     is_hidden: Optional[bool] = None
+    is_public: Optional[bool] = None
 
 
-def _serialize(p: models.CustomPoint) -> dict:
-    return {
+def _serialize(p: models.CustomPoint, include_images: bool = False, include_owner: bool = False) -> dict:
+    d = {
         "id": p.id,
+        "user_id": p.user_id,
         "trip_id": p.trip_id,
         "name": p.name,
         "icon": p.icon,
@@ -53,8 +55,14 @@ def _serialize(p: models.CustomPoint) -> dict:
         "day": p.day,
         "is_visited": p.is_visited,
         "is_hidden": p.is_hidden,
+        "is_public": p.is_public,
         "created_at": p.created_at,
     }
+    if include_images:
+        d["images"] = [{"id": img.id, "url": img.image_url} for img in p.images]
+    if include_owner:
+        d["owner"] = {"id": p.user.id, "username": p.user.username, "avatar_url": p.user.avatar_url}
+    return d
 
 
 # ── POST /custom-points ────────────────────────────────────────────────────────
@@ -105,6 +113,45 @@ def get_user_custom_points(
     return [_serialize(p) for p in points]
 
 
+# ── GET /custom-points/public ──────────────────────────────────────────────────
+# Points publics d'AUTRES utilisateurs visibles dans une bbox de la carte (exclut
+# les points de l'utilisateur courant, déjà couverts par /custom-points/user/{id}).
+@router.get("/public")
+def get_public_custom_points(
+    south: float = Query(...),
+    west:  float = Query(...),
+    north: float = Query(...),
+    east:  float = Query(...),
+    user: Optional[models.User] = Depends(get_current_user_optional),
+    db: Session = Depends(get_db),
+):
+    query = db.query(models.CustomPoint).filter(
+        models.CustomPoint.is_public.is_(True),
+        models.CustomPoint.latitude.between(south, north),
+        models.CustomPoint.longitude.between(west, east),
+    )
+    if user:
+        query = query.filter(models.CustomPoint.user_id != user.id)
+    return [_serialize(p, include_owner=True) for p in query.all()]
+
+
+# ── GET /custom-points/{id} ────────────────────────────────────────────────────
+# Détail complet (photos + propriétaire) — accessible au propriétaire ou si public.
+@router.get("/{point_id}")
+def get_custom_point(
+    point_id: int,
+    user: Optional[models.User] = Depends(get_current_user_optional),
+    db: Session = Depends(get_db),
+):
+    point = db.query(models.CustomPoint).filter(models.CustomPoint.id == point_id).first()
+    if not point:
+        raise HTTPException(status_code=404, detail="Point introuvable")
+    is_owner = user is not None and point.user_id == user.id
+    if not point.is_public and not is_owner:
+        raise HTTPException(status_code=403, detail="Accès refusé")
+    return _serialize(point, include_images=True, include_owner=True)
+
+
 # ── PATCH /custom-points/{id} ──────────────────────────────────────────────────
 @router.patch("/{point_id}")
 def update_custom_point(
@@ -122,6 +169,13 @@ def update_custom_point(
         require_trip_role(db, current_trip, current_user, "write")
     elif point.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Accès refusé")
+
+    if body.is_public is not None:
+        # Rendre public expose le point à toute l'application : réservé au créateur
+        # réel, même si un collaborateur de trajet a par ailleurs le droit "write".
+        if point.user_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Seul le créateur du point peut changer sa visibilité")
+        point.is_public = body.is_public
 
     if body.name is not None:
         point.name = body.name

@@ -9,6 +9,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from sqlalchemy.orm import Session
+from pydantic import BaseModel
 
 from database import get_db
 from deps import get_current_user, get_current_user_optional
@@ -127,4 +128,23 @@ async def update_my_profile(
         "avatar_url": current_user.avatar_url,
         "is_public": current_user.is_public,
         "friend_code": current_user.friend_code,
+        "hide_others_public_points": current_user.hide_others_public_points,
     }
+
+
+# ── PATCH /profile/preferences ────────────────────────────────────────────────
+class PreferencesUpdate(BaseModel):
+    hide_others_public_points: Optional[bool] = None
+
+
+@router.patch("/preferences")
+def update_my_preferences(
+    body: PreferencesUpdate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    if body.hide_others_public_points is not None:
+        current_user.hide_others_public_points = body.hide_others_public_points
+
+    db.commit()
+    return {"hide_others_public_points": current_user.hide_others_public_points}

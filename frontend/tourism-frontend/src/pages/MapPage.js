@@ -5,6 +5,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import '../css/MapPage.css';
 import MonumentSheet from '../components/MonumentSheet';
+import CustomPointSheet from '../components/CustomPointSheet';
 import MapSearchBar from '../components/MapSearchBar';
 import AddCustomPointSheet from '../components/AddCustomPointSheet';
 import PointsManagerSheet from '../components/PointsManagerSheet';
@@ -16,6 +17,7 @@ import { makePointIcon } from '../utils/pointIcons';
 // ── Constantes ────────────────────────────────────────────────────────────────
 const MIN_ZOOM  = 13;   // en dessous → pas de chargement des POI
 const MIN_ZOOM_MY_POINTS = 9; // en dessous → les points de l'utilisateur restent cachés
+const MIN_ZOOM_PUBLIC_POINTS = 13; // dataset global (tous les utilisateurs) → seuil comme les POI
 const CELL_DEG  = 0.025; // ~2.5 km par cellule de grille
 const DEFAULT_CENTER = [48.8566, 2.3522];
 const DEFAULT_ZOOM   = 15;
@@ -55,10 +57,13 @@ function getCategory(key) {
 function makeIcon(color, selected = false) {
   const size = selected ? 32 : 24;
   const h    = selected ? 48 : 36;
+  // Le rond central est un vrai trou (pas juste un cercle transparent, qui ne
+  // "découpe" rien en SVG) : path + cercle réunis dans un même <path> avec
+  // fill-rule="evenodd", qui soustrait la zone du cercle du remplissage du pin.
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 36" width="${size}" height="${h}">
-    <path d="M12 0C5.37 0 0 5.37 0 12c0 8.5 12 24 12 24S24 20.5 24 12C24 5.37 18.63 0 12 0z"
-      fill="${color}" stroke="#fff" stroke-width="${selected ? 2 : 1.5}"/>
-    <circle cx="12" cy="12" r="5" fill="#fff" opacity="0.9"/>
+    <path fill-rule="evenodd" fill="${color}"
+      d="M12 0C5.37 0 0 5.37 0 12c0 8.5 12 24 12 24S24 20.5 24 12C24 5.37 18.63 0 12 0z
+         M17,12 A5,5 0 1,0 7,12 A5,5 0 1,0 17,12 Z"/>
   </svg>`;
   return L.divIcon({
     html: svg, className: '',
@@ -187,6 +192,16 @@ async function fetchApiBbox(south, west, north, east) {
   return await res.json(); // [{ id, name, latitude, longitude, category, city, description }]
 }
 
+// ── Requête bbox des points personnalisés publics d'AUTRES utilisateurs ────────
+async function fetchPublicPointsBbox(south, west, north, east) {
+  const res = await apiFetch(
+    `/custom-points/public?south=${south}&west=${west}&north=${north}&east=${east}`,
+    { signal: AbortSignal.timeout(10_000) }
+  );
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return await res.json(); // [{ id, name, icon, color, latitude, longitude, owner }]
+}
+
 // ── Capture des clics carte en mode "ajout de point" ──────────────────────────
 function AddPointClickHandler({ active, onPick }) {
   useMapEvents({
@@ -251,10 +266,12 @@ export default function MapPage() {
   const [userPos, setUserPos]         = useState(null);
   const [loading, setLoading]         = useState(false);
   const [selected, setSelected]       = useState(null);
+  const [selectedCustomPoint, setSelectedCustomPoint] = useState(null); // { id, name, icon, color }
   const [mapView, setMapView]         = useState(null); // { zoom, bounds }
   const [trip, setTrip]               = useState(state?.trip ?? null);
   const [tripRoute, setTripRoute]     = useState([]);
   const [myPoints, setMyPoints]       = useState([]); // monuments-en-trajet + points custom de l'utilisateur
+  const [publicPoints, setPublicPoints] = useState([]); // points custom publics d'autres utilisateurs (chargés par bbox)
   const [myTrips, setMyTrips]         = useState([]); // liste légère {id, name} pour le menu de réassignation
   const [addMode, setAddMode]         = useState(() => !!presetTripId); // mode "ajout de point" actif (clic à venir)
   const [pendingPoint, setPendingPoint] = useState(null); // {lat, lng} en attente de validation via le formulaire
@@ -266,6 +283,8 @@ export default function MapPage() {
   // Cache en mémoire : survit aux re-renders, pas besoin de re-fetch
   const poisMapRef   = useRef(new Map()); // id → poi (accumulation)
   const fetchedCells = useRef(new Set()); // clés de cellules déjà chargées
+  const publicPointsMapRef   = useRef(new Map()); // id → point public (accumulation)
+  const fetchedPublicCells   = useRef(new Set());
   const debounceTimer = useRef(null);
   const mapRef         = useRef(null);
 
@@ -546,6 +565,44 @@ export default function MapPage() {
     }
   }, []);
 
+  // Points publics d'autres utilisateurs — même principe de cache par cellule que
+  // loadNewCells, dataset séparé (jamais mélangé aux POI ni à myPoints). On charge
+  // toujours (même si le toggle "masquer" est actif) pour que les données soient
+  // déjà là si l'utilisateur le réactive ; seul l'affichage filtre sur ce réglage.
+  const loadNewPublicCells = useCallback(async (zoom, bounds) => {
+    if (zoom < MIN_ZOOM_PUBLIC_POINTS) return;
+
+    const cells    = cellsInBounds(bounds);
+    const newCells = cells.filter(k => !fetchedPublicCells.current.has(k));
+    if (newCells.length === 0) return;
+
+    fetchedPublicCells.current = new Set([...fetchedPublicCells.current, ...newCells]);
+    try {
+      const allB  = newCells.map(cellBoundsFromKey);
+      const south = Math.min(...allB.map(b => b.south));
+      const west  = Math.min(...allB.map(b => b.west));
+      const north = Math.max(...allB.map(b => b.north));
+      const east  = Math.max(...allB.map(b => b.east));
+
+      const results = await fetchPublicPointsBbox(south, west, north, east);
+      let changed = false;
+      results.forEach(p => {
+        if (!publicPointsMapRef.current.has(p.id)) {
+          publicPointsMapRef.current.set(p.id, p);
+          changed = true;
+        }
+      });
+      if (changed) setPublicPoints([...publicPointsMapRef.current.values()]);
+    } catch {
+      newCells.forEach(k => fetchedPublicCells.current.delete(k));
+    }
+  }, []);
+
+  const handleFetchNeeded = useCallback((zoom, bounds) => {
+    loadNewCells(zoom, bounds);
+    loadNewPublicCells(zoom, bounds);
+  }, [loadNewCells, loadNewPublicCells]);
+
   // Points de l'utilisateur — seulement quand aucun trajet n'est mis en avant
   // spécifiquement (TripRouteLayer prend le relais dans ce cas, pour ne pas
   // dupliquer les marqueurs), au-delà du zoom minimum et dans les bounds actuels.
@@ -559,6 +616,19 @@ export default function MapPage() {
       p.longitude >= west  && p.longitude <= east
     );
   }, [myPoints, mapView, trip]);
+
+  // Points publics d'autres utilisateurs — masqués si un trajet est mis en avant
+  // (même raison que visibleMyPoints) ou si l'utilisateur a activé le toggle
+  // "masquer les points des autres" (préférence de compte, PointsManagerSheet).
+  const visiblePublicPoints = useMemo(() => {
+    if (trip || user?.hide_others_public_points) return [];
+    if (!mapView || mapView.zoom < MIN_ZOOM_PUBLIC_POINTS) return [];
+    const { south, west, north, east } = mapView.bounds;
+    return publicPoints.filter(p =>
+      p.latitude  >= south && p.latitude  <= north &&
+      p.longitude >= west  && p.longitude <= east
+    );
+  }, [publicPoints, mapView, trip, user]);
 
   // Monuments déjà représentés par un marqueur "point utilisateur" (icône/couleur
   // personnalisée, éventuellement badge visité/numéro) — on masque le pin POI
@@ -580,12 +650,14 @@ export default function MapPage() {
   }, [pois, mapView, coveredMonumentIds]);
 
   function selectPoi(poi) {
+    setSelectedCustomPoint(null);
     setSelected({ ...poi, _cat: getCategory(poi.category) });
   }
 
   // Clic sur un marqueur de monument en mode "voir sur la carte" d'un trajet
   // → ouvre la fiche détaillée du monument (au lieu d'une simple bulle avec le nom).
   function selectTripMonument(m) {
+    setSelectedCustomPoint(null);
     setSelected({
       id: m.monument_id,
       name: m.name,
@@ -594,6 +666,27 @@ export default function MapPage() {
       longitude: m.longitude,
       _cat: getCategory(m.category),
     });
+  }
+
+  function selectCustomPoint(p) {
+    setSelected(null);
+    setSelectedCustomPoint({ id: p.custom_point_id, name: p.name, icon: p.icon, color: p.color });
+  }
+
+  // Point public d'un AUTRE utilisateur (couche publicPoints, pas myPoints) —
+  // même sheet en lecture seule, id direct (pas de custom_point_id ici).
+  function selectPublicCustomPoint(p) {
+    setSelected(null);
+    setSelectedCustomPoint({ id: p.id, name: p.name, icon: p.icon, color: p.color });
+  }
+
+  function handleCustomPointUpdated(id, patch) {
+    setMyPoints(prev => prev.map(p => (p.kind === 'custom' && p.custom_point_id === id) ? { ...p, ...patch } : p));
+  }
+
+  function handleCustomPointDeleted(id) {
+    setMyPoints(prev => prev.filter(p => !(p.kind === 'custom' && p.custom_point_id === id)));
+    setSelectedCustomPoint(null);
   }
 
   function toggleAddMode() {
@@ -740,7 +833,7 @@ export default function MapPage() {
         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
         <MapEventsHandler
           onBoundsChange={setMapView}
-          onFetchNeeded={loadNewCells}
+          onFetchNeeded={handleFetchNeeded}
           debounceRef={debounceTimer}
         />
         <AddPointClickHandler
@@ -789,24 +882,40 @@ export default function MapPage() {
                 position={[p.latitude, p.longitude]}
                 icon={icon}
                 eventHandlers={{
-                  click: () => setSelected({
-                    id: p.monument_id,
-                    name: p.name,
-                    category: p.category,
-                    latitude: p.latitude,
-                    longitude: p.longitude,
-                    _cat: getCategory(p.category),
-                  }),
+                  click: () => {
+                    setSelectedCustomPoint(null);
+                    setSelected({
+                      id: p.monument_id,
+                      name: p.name,
+                      category: p.category,
+                      latitude: p.latitude,
+                      longitude: p.longitude,
+                      _cat: getCategory(p.category),
+                    });
+                  },
                 }}
               />
             );
           }
           return (
-            <Marker key={key} position={[p.latitude, p.longitude]} icon={icon}>
-              <Popup>{p.name}</Popup>
-            </Marker>
+            <Marker
+              key={key}
+              position={[p.latitude, p.longitude]}
+              icon={icon}
+              eventHandlers={{ click: () => selectCustomPoint(p) }}
+            />
           );
         })}
+
+        {/* Points personnalisés publics d'autres utilisateurs */}
+        {visiblePublicPoints.map(p => (
+          <Marker
+            key={`public-${p.id}`}
+            position={[p.latitude, p.longitude]}
+            icon={makePointIcon(p.icon, p.color, { other: true })}
+            eventHandlers={{ click: () => selectPublicCustomPoint(p) }}
+          />
+        ))}
 
         {/* POI — seulement ceux dans la vue actuelle */}
         {visible.map(poi => {
@@ -866,6 +975,13 @@ export default function MapPage() {
       </div>
 
       <MonumentSheet monument={selected} onClose={() => setSelected(null)} />
+
+      <CustomPointSheet
+        pointRef={selectedCustomPoint}
+        onClose={() => setSelectedCustomPoint(null)}
+        onUpdated={handleCustomPointUpdated}
+        onDeleted={handleCustomPointDeleted}
+      />
 
       <AddCustomPointSheet
         position={pendingPoint}

@@ -1,6 +1,10 @@
 import { useState } from 'react';
 import { ICON_LIBRARY } from '../utils/pointIcons';
 import ConfirmDialog from './ConfirmDialog';
+import { useAuth } from '../context/AuthContext';
+import { apiFetch } from '../services/api';
+import '../css/MapSheets.css';
+import '../css/CustomPointSheet.css'; // réutilise .cps-toggle / .cps-visibility-*
 import '../css/PointsManagerSheet.css';
 
 function pointKey(p) {
@@ -118,7 +122,9 @@ function PointsGroupSection({ title, items, trips, onToggleHidden, onMove, onDel
 }
 
 export default function PointsManagerSheet({ open, points, trips, onClose, onToggleHidden, onMovePoint, onDeleteCustomPoint }) {
+  const { user, updateUser } = useAuth();
   const [confirmingDelete, setConfirmingDelete] = useState(null);
+  const [togglingPref, setTogglingPref] = useState(false);
 
   if (!open) return null;
 
@@ -129,11 +135,28 @@ export default function PointsManagerSheet({ open, points, trips, onClose, onTog
     setConfirmingDelete(null);
   }
 
+  async function handleToggleHideOthers() {
+    const next = !user.hide_others_public_points;
+    setTogglingPref(true);
+    updateUser({ hide_others_public_points: next });
+    try {
+      const r = await apiFetch('/profile/preferences', {
+        method: 'PATCH',
+        body: JSON.stringify({ hide_others_public_points: next }),
+      });
+      if (!r.ok) throw new Error();
+    } catch {
+      updateUser({ hide_others_public_points: !next });
+    } finally {
+      setTogglingPref(false);
+    }
+  }
+
   return (
     <>
-      <div className="pms-backdrop" onClick={onClose} />
-      <div className="pms-sheet" role="dialog" aria-modal="true">
-        <div className="pms-handle" />
+      <div className="map-sheet-backdrop" onClick={onClose} />
+      <div className="pms-sheet map-sheet" role="dialog" aria-modal="true">
+        <div className="map-sheet-handle" />
 
         <div className="pms-header">
           <h3>Mes points</h3>
@@ -143,6 +166,29 @@ export default function PointsManagerSheet({ open, points, trips, onClose, onTog
             </svg>
           </button>
         </div>
+
+        {user && (
+          <div className="cps-visibility-row pms-hide-others-row">
+            <div className="cps-visibility-text">
+              <span className="cps-visibility-title">Points publics des autres</span>
+              <span className="cps-visibility-desc">
+                {user.hide_others_public_points
+                  ? 'Masqués sur la carte.'
+                  : 'Affichés sur la carte quand vous zoomez.'}
+              </span>
+            </div>
+            <button
+              className={`cps-toggle${user.hide_others_public_points ? ' cps-toggle--on' : ''}`}
+              onClick={handleToggleHideOthers}
+              disabled={togglingPref}
+              role="switch"
+              aria-checked={!!user.hide_others_public_points}
+              aria-label="Masquer les points publics des autres utilisateurs"
+            >
+              <span className="cps-toggle-knob" />
+            </button>
+          </div>
+        )}
 
         {points.length === 0 ? (
           <p className="pms-empty">Aucun point pour l'instant. Ajoutez un monument à un trajet ou un point personnalisé depuis la carte.</p>

@@ -49,6 +49,7 @@ def _user_payload(user: models.User, token: str) -> dict:
             "avatar_url": user.avatar_url,
             "is_public": user.is_public,
             "friend_code": user.friend_code,
+            "hide_others_public_points": user.hide_others_public_points,
         },
     }
 
@@ -153,4 +154,5 @@ def me(user: models.User = Depends(get_current_user)):
         "avatar_url": user.avatar_url,
         "is_public": user.is_public,
         "friend_code": user.friend_code,
+        "hide_others_public_points": user.hide_others_public_points,
     }

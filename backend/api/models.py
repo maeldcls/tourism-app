@@ -19,6 +19,7 @@ class User(Base):
     avatar_url = Column(Text, nullable=True)
     is_public = Column(Boolean, nullable=False, default=True)
     friend_code = Column(String(12), nullable=False, unique=True, index=True)
+    hide_others_public_points = Column(Boolean, nullable=False, default=False)
     created_at = Column(TIMESTAMP, default=datetime.utcnow)
 
     visits = relationship("Visit", back_populates="user")
@@ -185,10 +186,27 @@ class CustomPoint(Base):
     day = Column(Integer, nullable=True)
     is_visited = Column(Boolean, nullable=False, default=False)
     is_hidden = Column(Boolean, nullable=False, default=False)
+    is_public = Column(Boolean, nullable=False, default=False)
     created_at = Column(TIMESTAMP, default=datetime.utcnow)
 
     user = relationship("User", back_populates="custom_points")
     trip = relationship("Trip", back_populates="custom_points")
+    images = relationship("CustomPointImage", back_populates="custom_point", cascade="all, delete-orphan")
+
+
+class CustomPointImage(Base):
+    """Photo ajoutée par le propriétaire d'un point custom (pas de modération :
+    contrairement aux photos de monuments, ce contenu reste sous le contrôle
+    exclusif du créateur du point, public ou non)."""
+    __tablename__ = "custom_point_images"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    custom_point_id = Column(Integer, ForeignKey("custom_points.id", ondelete="CASCADE"), nullable=False)
+    image_url = Column(Text, nullable=False)
+    submitted_by = Column(BigInteger, ForeignKey("users.id"), nullable=True)
+    created_at = Column(TIMESTAMP, default=datetime.utcnow)
+
+    custom_point = relationship("CustomPoint", back_populates="images")
 
 
 class MonumentTheme(Base):

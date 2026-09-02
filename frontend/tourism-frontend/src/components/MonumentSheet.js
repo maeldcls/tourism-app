@@ -1,17 +1,27 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import '../css/MapSheets.css';
+import '../css/Monument.css'; // pour .monu-section/.monu-section-title, réutilisés par RatingWidget/MonumentTags
 import '../css/MonumentSheet.css';
 import ImageLightbox from './ImageLightbox';
 import AddToTripDialog from './AddToTripDialog';
+import RatingWidget from './RatingWidget';
+import MonumentTags from './MonumentTags';
 import { useMonumentImages } from '../hooks/useMonumentImages';
+import { useResizableSheet } from '../hooks/useResizableSheet';
 
-const MAX_VISIBLE_THUMBS = 4;
+const MAX_VISIBLE_THUMBS = 5;
+const DEFAULT_HEIGHT_VH = 50;
 
 export default function MonumentSheet({ monument, onClose }) {
   const navigate = useNavigate();
   const [lightboxIndex, setLightboxIndex] = useState(null);
+  const [activeImg, setActiveImg] = useState(0);
   const [showTripDialog, setShowTripDialog] = useState(false);
   const { images, loading } = useMonumentImages(monument);
+  const { heightVh, reset: resetHeight, handleProps } = useResizableSheet(DEFAULT_HEIGHT_VH);
+
+  useEffect(() => { setActiveImg(0); resetHeight(); }, [monument?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!monument) return null;
 
@@ -21,9 +31,11 @@ export default function MonumentSheet({ monument, onClose }) {
 
   return (
     <>
-      <div className="sheet-backdrop" onClick={onClose} />
-      <div className="sheet">
-        <div className="sheet-handle" />
+      <div className="map-sheet-backdrop" onClick={onClose} />
+      <div className="sheet map-sheet" style={{ height: `${heightVh}vh`, maxHeight: '85vh' }}>
+        <div className="map-sheet-handle-zone" {...handleProps}>
+          <div className="map-sheet-handle" />
+        </div>
 
         <div className="sheet-header">
           <span className="sheet-tag" style={{ background: cat.color }}>
@@ -47,38 +59,50 @@ export default function MonumentSheet({ monument, onClose }) {
           </div>
         )}
 
-        {/* Thumbnails */}
+        {/* Galerie — grande image centrée + vignettes */}
         {loading && (
-          <div className="sheet-thumbnails">
-            {[1, 2, 3].map(i => <div key={i} className="sheet-thumb sheet-thumb--skeleton" />)}
+          <div className="sheet-gallery">
+            <div className="sheet-hero sheet-hero--skeleton" />
           </div>
         )}
 
         {!loading && images.length > 0 && (
-          <div className="sheet-thumbnails">
-            {visibleImgs.map((url, i) => (
-              <button
-                key={i}
-                className="sheet-thumb"
-                onClick={() => setLightboxIndex(i)}
-                aria-label={`Photo ${i + 1}`}
-              >
-                <img
-                  src={url}
-                  alt=""
-                  onError={e => { e.target.closest('.sheet-thumb').style.display = 'none'; }}
-                />
-              </button>
-            ))}
+          <div className="sheet-gallery">
+            <button
+              className="sheet-hero"
+              onClick={() => setLightboxIndex(activeImg)}
+              aria-label="Agrandir la photo"
+            >
+              <img
+                src={images[activeImg] || images[0]}
+                alt=""
+                onError={e => { e.target.closest('.sheet-hero').style.display = 'none'; }}
+              />
+            </button>
 
-            {extraCount > 0 && (
-              <button
-                className="sheet-thumb sheet-thumb--more"
-                onClick={() => setLightboxIndex(MAX_VISIBLE_THUMBS)}
-                aria-label={`Voir ${extraCount} photos de plus`}
-              >
-                +{extraCount}
-              </button>
+            {images.length > 1 && (
+              <div className="sheet-thumbnails">
+                {visibleImgs.map((url, i) => (
+                  <button
+                    key={i}
+                    className={`sheet-thumb${i === activeImg ? ' sheet-thumb--active' : ''}`}
+                    onClick={() => setActiveImg(i)}
+                    aria-label={`Photo ${i + 1}`}
+                  >
+                    <img src={url} alt="" />
+                  </button>
+                ))}
+
+                {extraCount > 0 && (
+                  <button
+                    className="sheet-thumb sheet-thumb--more"
+                    onClick={() => setLightboxIndex(MAX_VISIBLE_THUMBS)}
+                    aria-label={`Voir ${extraCount} photos de plus`}
+                  >
+                    +{extraCount}
+                  </button>
+                )}
+              </div>
             )}
           </div>
         )}
@@ -87,25 +111,34 @@ export default function MonumentSheet({ monument, onClose }) {
           <p className="sheet-description">{monument.description}</p>
         )}
 
-        <button
-          className="sheet-save"
-          onClick={() => setShowTripDialog(true)}
-        >
-          <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
-            <path d="M21 3L3 10.53v.98l6.84 2.65L12.48 21h.98L21 3z" />
-          </svg>
-          Ajouter à un trajet
-        </button>
+        {monument.id && (
+          <div className="sheet-community">
+            <RatingWidget monumentId={monument.id} />
+            <MonumentTags monumentId={monument.id} />
+          </div>
+        )}
 
-        <button
-          className="sheet-detail"
-          onClick={() => navigate('/monument', { state: { monument } })}
-        >
-          <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
-            <path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z" />
-          </svg>
-          Voir les détails
-        </button>
+        <div className="sheet-actions">
+          <button
+            className="sheet-save"
+            onClick={() => setShowTripDialog(true)}
+          >
+            <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
+              <path d="M21 3L3 10.53v.98l6.84 2.65L12.48 21h.98L21 3z" />
+            </svg>
+            Ajouter à un trajet
+          </button>
+
+          <button
+            className="sheet-detail"
+            onClick={() => navigate('/monument', { state: { monument } })}
+          >
+            <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
+              <path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z" />
+            </svg>
+            Voir les détails
+          </button>
+        </div>
       </div>
 
       {lightboxIndex !== null && (

@@ -1,35 +1,14 @@
-.sheet-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 40;
-}
-
 .sheet {
-  position: fixed;
-  bottom: 64px; /* au dessus de la navbar */
-  left: 0;
-  right: 0;
-  background: #fff;
-  border-radius: 20px 20px 0 0;
-  box-shadow: 0 -4px 24px rgba(36, 27, 46, 0.18);
-  padding: 0.75rem 1.25rem 1.5rem;
-  z-index: 50;
-  animation: sheet-slide-up 0.25s cubic-bezier(0.32, 0.72, 0, 1);
-  max-height: 55vh;
-  overflow-y: auto;
-}
-
-@keyframes sheet-slide-up {
-  from { transform: translateY(100%); }
-  to   { transform: translateY(0); }
-}
-
-.sheet-handle {
-  width: 36px;
-  height: 4px;
-  background: var(--map-border, #e7e1e8);
-  border-radius: 2px;
-  margin: 0 auto 0.85rem;
+  /* Alimente RatingWidget/MonumentTags (qui utilisent les variables --monu-*
+     de Monument.css) avec les mêmes valeurs, sans dépendre de ce fichier. */
+  --monu-surface: #ffffff;
+  --monu-ink: var(--map-ink, #241b2e);
+  --monu-muted: var(--map-muted, #82788f);
+  --monu-border: var(--map-border, #e7e1e8);
+  --monu-mint-dark: #2fa876;
+  --monu-teal-dark: var(--map-teal-dark, #276a80);
+  --monu-slate: var(--map-slate, #525174);
+  --monu-gradient: var(--map-gradient, linear-gradient(135deg, #5dd39e, #348aa7));
 }
 
 .sheet-header {
@@ -80,7 +59,44 @@
   gap: 0.3rem;
   color: var(--map-muted, #82788f);
   font-size: 0.85rem;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.9rem;
+}
+
+/* Galerie photo — grande image centrée + bande de vignettes */
+.sheet-gallery {
+  margin-bottom: 1rem;
+}
+
+.sheet-hero {
+  position: relative;
+  width: 100%;
+  height: 170px; /* cadre fixe : la photo s'y adapte (object-fit), pas l'inverse */
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--map-border, #e7e1e8);
+  padding: 0;
+  border: none;
+  cursor: pointer;
+  display: block;
+}
+
+.sheet-hero img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.sheet-hero--skeleton {
+  background: linear-gradient(90deg, #e7e1e8 25%, #dcd5df 50%, #e7e1e8 75%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.4s infinite;
+  cursor: default;
+}
+
+@keyframes skeleton-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
 
 .sheet-thumbnails {
@@ -88,7 +104,7 @@
   gap: 0.5rem;
   overflow-x: auto;
   scrollbar-width: none;
-  margin-bottom: 0.85rem;
+  margin-top: 0.5rem;
   padding-bottom: 2px;
 }
 
@@ -98,8 +114,8 @@
 
 .sheet-thumb {
   flex-shrink: 0;
-  width: 72px;
-  height: 72px;
+  width: 60px;
+  height: 60px;
   border-radius: 8px;
   overflow: hidden;
   padding: 0;
@@ -109,8 +125,11 @@
   background: var(--map-border, #e7e1e8);
 }
 
-.sheet-thumb:hover {
+.sheet-thumb--active {
   border-color: var(--map-teal, #348aa7);
+}
+
+.sheet-thumb:hover {
   transform: scale(1.04);
 }
 
@@ -125,7 +144,7 @@
   background: #f0ecf1;
   border: none;
   color: var(--map-slate, #525174);
-  font-size: 1rem;
+  font-size: 0.9rem;
   font-weight: 700;
   display: flex;
   align-items: center;
@@ -138,21 +157,8 @@
   transform: scale(1.04);
 }
 
-.sheet-thumb--skeleton {
-  background: linear-gradient(90deg, #e7e1e8 25%, #dcd5df 50%, #e7e1e8 75%);
-  background-size: 200% 100%;
-  animation: skeleton-shimmer 1.4s infinite;
-  cursor: default;
-  border: none;
-}
-
-@keyframes skeleton-shimmer {
-  0%   { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
-}
-
 .sheet-description {
-  margin: 0 0 0.75rem;
+  margin: 0 0 1.1rem;
   font-size: 0.9rem;
   color: var(--map-ink, #241b2e);
   line-height: 1.55;
@@ -165,21 +171,32 @@
   margin-bottom: 0.5rem;
 }
 
+/* Sections communauté (avis, tags) — mêmes composants que Monument.js */
+.sheet-community {
+  margin-bottom: 0.3rem;
+}
+
+.sheet-actions {
+  display: flex;
+  gap: 0.6rem;
+  margin-bottom: 0.5rem;
+}
+
 .sheet-detail {
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  padding: 0.75rem;
+  gap: 0.4rem;
+  padding: 0.75rem 0.5rem;
   background: #fff;
   color: var(--map-teal-dark, #276a80);
-  font-size: 0.95rem;
+  font-size: 0.88rem;
   font-weight: 600;
   border: 2px solid var(--map-teal, #348aa7);
   border-radius: 10px;
   cursor: pointer;
-  margin-bottom: 0.65rem;
   transition: background 0.2s, color 0.2s;
 }
 
@@ -188,15 +205,16 @@
 }
 
 .sheet-save {
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  padding: 0.75rem;
+  gap: 0.4rem;
+  padding: 0.75rem 0.5rem;
   background: var(--map-gradient, linear-gradient(135deg, #5dd39e, #348aa7));
   color: #fff;
-  font-size: 0.95rem;
+  font-size: 0.88rem;
   font-weight: 600;
   border: none;
   border-radius: 10px;

@@ -1,0 +1,225 @@
+.cps-sheet {
+  --monu-ink: var(--map-ink, #241b2e);
+  --monu-muted: var(--map-muted, #82788f);
+  --monu-border: var(--map-border, #e7e1e8);
+}
+
+.cps-badge-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.cps-icon-badge {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.cps-edit-icon-btn {
+  background: #f0ecf1;
+  border: none;
+  border-radius: 50%;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--map-slate, #525174);
+  padding: 0;
+}
+
+.cps-title--editable {
+  cursor: pointer;
+}
+
+.cps-title-input {
+  width: 100%;
+  margin: 0 0 0.35rem;
+  padding: 0.3rem 0;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--map-ink, #241b2e);
+  border: none;
+  border-bottom: 2px solid var(--map-teal, #348aa7);
+  background: transparent;
+  outline: none;
+}
+
+.cps-owner-line {
+  margin-bottom: 0.9rem;
+}
+
+.cps-thumb-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.cps-thumb-delete {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: none;
+  background: #c62828;
+  color: #fff;
+  font-size: 0.85rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+
+.cps-thumb-add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f0ecf1;
+  color: var(--map-teal-dark, #276a80);
+  font-size: 1.3rem;
+  font-weight: 700;
+  border: 2px dashed var(--map-border, #e7e1e8);
+}
+
+.cps-thumb-add:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.cps-empty-gallery {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 1.75rem 1rem;
+  border: 2px dashed var(--map-border, #e7e1e8);
+  border-radius: 14px;
+  background: #faf8fa;
+  color: var(--map-muted, #82788f);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.cps-empty-gallery:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.cps-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(52, 138, 167, 0.25);
+  border-top-color: var(--map-teal, #348aa7);
+  border-radius: 50%;
+  animation: cps-spin 0.7s linear infinite;
+}
+
+@keyframes cps-spin {
+  to { transform: rotate(360deg); }
+}
+
+.cps-error {
+  margin: 0 0 0.75rem;
+  font-size: 0.82rem;
+  color: #c62828;
+}
+
+.cps-visibility-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem 0.9rem;
+  background: #f7f5f8;
+  border-radius: 12px;
+  margin-bottom: 0.75rem;
+}
+
+.cps-visibility-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.cps-visibility-title {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--map-ink, #241b2e);
+}
+
+.cps-visibility-desc {
+  font-size: 0.76rem;
+  color: var(--map-muted, #82788f);
+}
+
+.cps-toggle {
+  flex-shrink: 0;
+  width: 44px;
+  height: 24px;
+  border-radius: 999px;
+  border: none;
+  background: var(--map-border, #e7e1e8);
+  cursor: pointer;
+  position: relative;
+  transition: background 0.2s;
+  padding: 0;
+}
+
+.cps-toggle--on {
+  background: #2fa876;
+}
+
+.cps-toggle:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.cps-toggle-knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 0.2s;
+  box-shadow: 0 1px 3px rgba(36, 27, 46, 0.35);
+}
+
+.cps-toggle--on .cps-toggle-knob {
+  transform: translateX(20px);
+}
+
+.cps-delete-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.7rem;
+  background: #fff;
+  color: #c62828;
+  font-size: 0.9rem;
+  font-weight: 600;
+  border: 1.5px solid #f0c4c4;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.cps-delete-btn:hover {
+  background: #fff5f5;
+}
