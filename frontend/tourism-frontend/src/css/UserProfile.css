@@ -168,3 +168,106 @@
   background: #e3f2fd;
   color: #1565c0;
 }
+
+.uprofile-section {
+  width: 100%;
+  margin-top: 1.25rem;
+}
+
+.uprofile-section-header {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.uprofile-section-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1b5e20;
+}
+
+.uprofile-section-count {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #2e7d32;
+  background: rgba(67, 160, 71, 0.15);
+  border-radius: 999px;
+  padding: 0.1rem 0.55rem;
+}
+
+.uprofile-visited-grid,
+.uprofile-photos-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.55rem;
+}
+
+.uprofile-photo-thumb {
+  aspect-ratio: 1;
+  padding: 0;
+  border: none;
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  background: #eceff1;
+}
+
+.uprofile-photo-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+.uprofile-section-more-btn {
+  margin-top: 0.65rem;
+  width: 100%;
+  padding: 0.55rem;
+  background: #f1f8e9;
+  color: #2e7d32;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border: 1.5px solid #dcedc8;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.uprofile-section-more-btn:hover { background: #e8f5e9; }
+
+.uprofile-trips-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.6rem;
+}
+
+.uprofile-trip-card {
+  display: flex;
+  flex-direction: column;
+  border-radius: 12px;
+  overflow: hidden;
+  text-decoration: none;
+  background: #f8fafc;
+  border: 1.5px solid #eceff1;
+}
+
+.uprofile-trip-cover {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  background: #eceff1;
+}
+
+.uprofile-trip-cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+.uprofile-trip-cover-placeholder {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, rgba(67, 160, 71, 0.35), rgba(30, 136, 229, 0.35));
+}
+
+.uprofile-trip-name {
+  padding: 0.4rem 0.55rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #37474f;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

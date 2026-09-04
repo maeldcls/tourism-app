@@ -12,7 +12,8 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import Optional
 from database import get_db
-from deps import get_current_user
+from deps import get_current_user, get_current_user_optional
+from services.friend_utils import find_friendship, relation_status
 from services.visit_utils import record_visit
 import models
 
@@ -81,17 +82,28 @@ def get_visit_status(
 
 
 # ── GET /visits/user/{user_id} ─────────────────────────────────────────────────
-# Profil : section "Lieux visités" (limit réduit) + page dédiée (infinite scroll)
+# Profil : section "Lieux visités" (limit réduit) + page dédiée (infinite scroll).
+# Visible par le propriétaire, par tout le monde si son profil est public, ou par
+# ses amis sinon — même règle que la galerie photo / les trajets publics
+# (services.trip_utils.can_view_trip_publicly), pas la règle plus stricte "profil
+# privé = nom+photo même pour les amis" qui ne s'applique qu'à GET /profile/{id}.
 @router.get("/user/{user_id}")
 def get_user_visits(
     user_id: int,
     limit: int = 20,
     offset: int = 0,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user),
+    viewer: Optional[models.User] = Depends(get_current_user_optional),
 ):
-    if user_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Accès refusé")
+    target = db.query(models.User).filter(models.User.id == user_id).first()
+    if not target:
+        raise HTTPException(status_code=404, detail="User introuvable")
+
+    is_owner = viewer is not None and viewer.id == user_id
+    if not is_owner and not target.is_public:
+        relation = relation_status(find_friendship(db, viewer.id, user_id), viewer.id) if viewer else "none"
+        if relation != "friends":
+            raise HTTPException(status_code=403, detail="Accès refusé")
 
     limit = max(1, min(limit, 50))
 
