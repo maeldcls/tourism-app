@@ -47,6 +47,12 @@ def _apply_geo_filter(monuments: list[models.Monument], lat, lon, max_km) -> lis
     ]
 
 
+def _apply_category_filter(monuments: list[models.Monument], category: Optional[str]) -> list[models.Monument]:
+    if not category:
+        return monuments
+    return [m for m in monuments if m.category == category]
+
+
 def format_results(
     monuments: list[models.Monument],
     profile: Optional[dict],
@@ -103,6 +109,7 @@ class RecommendationStrategy(ABC):
         lat: Optional[float],
         lon: Optional[float],
         max_km: Optional[float],
+        category: Optional[str],
         offset: int,
         limit: int,
     ) -> dict:
@@ -128,10 +135,11 @@ class PopularStrategy(RecommendationStrategy):
             counts[monument_id] = counts.get(monument_id, 0) + cnt
         return counts
 
-    def get_recommendations(self, db, user, lat, lon, max_km, offset, limit) -> dict:
+    def get_recommendations(self, db, user, lat, lon, max_km, category, offset, limit) -> dict:
         counts = self._popularity_counts(db)
 
         monuments = db.query(models.Monument).all()
+        monuments = _apply_category_filter(monuments, category)
         monuments = _apply_geo_filter(monuments, lat, lon, max_km)
         monuments.sort(key=lambda m: counts.get(m.id, 0), reverse=True)
         page = monuments[offset: offset + limit]
@@ -158,13 +166,14 @@ class RatedStrategy(RecommendationStrategy):
         )
         return {monument_id: (total, positive or 0) for monument_id, total, positive in rows}
 
-    def get_recommendations(self, db, user, lat, lon, max_km, offset, limit) -> dict:
+    def get_recommendations(self, db, user, lat, lon, max_km, category, offset, limit) -> dict:
         stats = self._rating_stats(db)
         eligible_ids = [mid for mid, (total, _) in stats.items() if total >= MIN_VOTES_FOR_SCORE]
         if not eligible_ids:
             return {"items": [], "has_history": True, "top_user_themes": []}
 
         monuments = db.query(models.Monument).filter(models.Monument.id.in_(eligible_ids)).all()
+        monuments = _apply_category_filter(monuments, category)
         monuments = _apply_geo_filter(monuments, lat, lon, max_km)
 
         def percent_of(m: models.Monument) -> float:
@@ -272,13 +281,14 @@ class PersonalizedStrategy(RecommendationStrategy):
 
         return self.TAG_WEIGHT * tag_score + self.EMBEDDING_WEIGHT * embed_score
 
-    def get_recommendations(self, db, user, lat, lon, max_km, offset, limit) -> dict:
+    def get_recommendations(self, db, user, lat, lon, max_km, category, offset, limit) -> dict:
         history = self._get_user_history(user.id, db)
         known_ids = {m.id for m in history}
         profile = self._build_taste_profile(user, history, db)
 
         if not profile:
             candidates = db.query(models.Monument).all()
+            candidates = _apply_category_filter(candidates, category)
             if lat is not None and lon is not None:
                 candidates = [m for m in candidates if m.latitude is not None and m.longitude is not None]
                 candidates.sort(key=lambda m: _haversine_km(lat, lon, m.latitude, m.longitude))
@@ -292,6 +302,7 @@ class PersonalizedStrategy(RecommendationStrategy):
             .filter(models.Monument.id.notin_(known_ids) if known_ids else True)
             .all()
         )
+        all_monuments = _apply_category_filter(all_monuments, category)
         all_monuments = _apply_geo_filter(all_monuments, lat, lon, max_km)
 
         scored = [(m, self._score_monument(m, profile, user_theme_map)) for m in all_monuments]

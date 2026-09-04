@@ -1,0 +1,98 @@
+@startuml 01_class_trajets
+!theme plain
+title Diagramme de classes — Domaine "Trajets & Monuments"
+
+class User {
+  +id: int
+  +username: string
+  +email: string
+}
+
+class Trip {
+  +id: int
+  +name: string
+  +description: string
+  +start_date: datetime
+  +end_date: datetime
+  +status: string = "planned"
+  +use_days: bool = false
+  +day_count: int
+  +created_at: datetime
+}
+
+class TripMonument {
+  +trip_id: int <<PK, FK>>
+  +monument_id: int <<PK, FK>>
+  +order: int
+  +day: int
+  +is_visited: bool
+  +icon: string
+  +color: string
+  +is_hidden: bool
+  +added_at: datetime
+}
+
+class Monument {
+  +id: int
+  +name: string
+  +description: string
+  +city: string
+  +category: string = "monument"
+  +latitude: float
+  +longitude: float
+  +osm_id: bigint <<unique>>
+}
+
+class CustomPoint {
+  +id: int
+  +name: string
+  +icon: string = "pin"
+  +color: string
+  +latitude: float
+  +longitude: float
+  +order: int
+  +day: int
+  +is_visited: bool
+  +is_public: bool
+}
+
+class Comment {
+  +id: int
+  +body: text
+  +status: string = "visible"
+  +ai_score: float
+}
+
+class Rating {
+  +id: int
+  +is_positive: bool
+}
+
+User "1" --> "*" Trip : possède
+Trip "1" *--> "*" TripMonument : contient\n(cascade delete-orphan)
+TripMonument "*" --> "1" Monument : référence
+Trip "1" o--> "*" CustomPoint : contient\n(ON DELETE SET NULL)
+User "1" --> "*" CustomPoint : crée
+Monument "1" *--> "*" Comment : reçoit\n(cascade delete-orphan)
+Monument "1" *--> "*" Rating : reçoit\n(cascade delete-orphan)
+User "1" --> "*" Comment : rédige
+User "1" --> "*" Rating : donne
+
+note right of TripMonument
+  Clé composée (trip_id, monument_id) :
+  un monument ne peut apparaître
+  qu'une seule fois par trajet.
+  order + day pilotent l'affichage
+  (groupes "Jour 1", "Jour 2"…)
+  et le tracé sur la carte.
+end note
+
+note right of Trip
+  status n'est pas modifié
+  manuellement par l'utilisateur :
+  il est recalculé côté front à partir
+  du ratio de TripMonument.is_visited
+  (voir diagramme d'état dédié).
+end note
+
+@enduml

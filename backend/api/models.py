@@ -143,6 +143,9 @@ class Trip(Base):
     status = Column(String(50), default="planned")
     use_days = Column(Boolean, nullable=False, default=False)
     day_count = Column(Integer, nullable=True)
+    is_public = Column(Boolean, nullable=False, default=False)
+    show_photos_publicly = Column(Boolean, nullable=False, default=True)
+    cover_photo_id = Column(Integer, ForeignKey("trip_photos.id", ondelete="SET NULL"), nullable=True)
     created_at = Column(TIMESTAMP, default=datetime.utcnow)
 
     user = relationship("User", back_populates="trips")
@@ -150,6 +153,10 @@ class Trip(Base):
     custom_points = relationship("CustomPoint", back_populates="trip")
     collaborators = relationship("TripCollaborator", back_populates="trip", cascade="all, delete-orphan")
     location_shares = relationship("TripLocationShare", back_populates="trip", cascade="all, delete-orphan")
+    photos = relationship(
+        "TripPhoto", back_populates="trip", cascade="all, delete-orphan", foreign_keys="TripPhoto.trip_id"
+    )
+    cover_photo = relationship("TripPhoto", foreign_keys=[cover_photo_id], post_update=True)
 
 
 class TripMonument(Base):
@@ -167,6 +174,22 @@ class TripMonument(Base):
 
     trip = relationship("Trip", back_populates="trip_monuments")
     monument = relationship("Monument", back_populates="trip_monuments")
+
+
+class TripPhoto(Base):
+    """Photo ajoutée par un membre d'un trajet (host/write/read), mise en commun
+    avec les autres membres. Le nom de l'auteur reste toujours affiché."""
+    __tablename__ = "trip_photos"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    trip_id = Column(BigInteger, ForeignKey("trips.id", ondelete="CASCADE"), nullable=False)
+    uploaded_by = Column(BigInteger, ForeignKey("users.id"), nullable=True)
+    image_url = Column(Text, nullable=False)
+    caption = Column(Text, nullable=True)
+    created_at = Column(TIMESTAMP, default=datetime.utcnow)
+
+    trip = relationship("Trip", back_populates="photos", foreign_keys=[trip_id])
+    uploader = relationship("User", foreign_keys=[uploaded_by])
 
 
 class CustomPoint(Base):
@@ -334,3 +357,38 @@ class TripLocationShare(Base):
 
     trip = relationship("Trip", back_populates="location_shares")
     user = relationship("User")
+
+
+class FeaturedDestination(Base):
+    """Destination mise en avant sur la Home, gérée par un admin (page éditoriale,
+    indépendante des recherches/filtres de la page Destinations)."""
+    __tablename__ = "featured_destinations"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(255), nullable=False)
+    country = Column(String(255), nullable=True)
+    tagline = Column(String(500), nullable=True)
+    cover_image_url = Column(Text, nullable=True)
+    latitude = Column(Float, nullable=True)
+    longitude = Column(Float, nullable=True)
+    is_active = Column(Boolean, nullable=False, default=True)
+    created_at = Column(TIMESTAMP, default=datetime.utcnow)
+
+    monuments = relationship(
+        "FeaturedDestinationMonument", back_populates="destination",
+        cascade="all, delete-orphan", order_by="FeaturedDestinationMonument.id",
+    )
+
+
+class FeaturedDestinationMonument(Base):
+    """Monument incontournable choisi par l'admin pour une FeaturedDestination."""
+    __tablename__ = "featured_destination_monuments"
+    __table_args__ = (UniqueConstraint("featured_destination_id", "monument_id", name="uq_featured_dest_monument"),)
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    featured_destination_id = Column(BigInteger, ForeignKey("featured_destinations.id"), nullable=False)
+    monument_id = Column(BigInteger, ForeignKey("monuments.id"), nullable=False)
+    added_at = Column(TIMESTAMP, default=datetime.utcnow)
+
+    destination = relationship("FeaturedDestination", back_populates="monuments")
+    monument = relationship("Monument")

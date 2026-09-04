@@ -20,8 +20,10 @@ from pydantic import BaseModel
 from typing import Optional
 import requests
 from database import get_db
-from deps import get_current_user
-from services.trip_utils import get_trip_role, require_trip_role, load_trip_or_404, get_trip, accessible_trip_ids
+from deps import get_current_user, get_current_user_optional
+from services.trip_utils import (
+    get_trip_role, require_trip_role, load_trip_or_404, get_trip, accessible_trip_ids, can_view_trip_publicly,
+)
 from services.visit_utils import record_visit
 from repositories.trip_repository import TripRepository
 from repositories.monument_repository import MonumentRepository
@@ -56,6 +58,13 @@ class TripMonumentMove(BaseModel):
 class TripSettingsUpdate(BaseModel):
     use_days: Optional[bool] = None
     day_count: Optional[int] = None
+
+
+class TripVisibilityUpdate(BaseModel):
+    is_public: Optional[bool] = None
+    show_photos_publicly: Optional[bool] = None
+    cover_photo_id: Optional[int] = None
+    clear_cover: bool = False
 
 
 class ReorderItem(BaseModel):
@@ -97,6 +106,10 @@ def get_user_trips(
             "created_at": t.created_at,
             "use_days": t.use_days,
             "day_count": t.day_count,
+            "is_public": t.is_public,
+            "show_photos_publicly": t.show_photos_publicly,
+            "cover_photo_id": t.cover_photo_id,
+            "cover_photo_url": t.cover_photo.image_url if t.cover_photo else None,
             "role": get_trip_role(db, t, current_user),
             "host": {"id": t.user.id, "username": t.user.username} if t.user_id != user_id else None,
             "members": [
@@ -344,6 +357,112 @@ def delete_trip(
 ):
     TripRepository(db).delete(trip)
     return {"detail": "Trajet supprimé"}
+
+
+# ── PATCH /trips/{trip_id}/visibility ──────────────────────────────────────────
+# Réservé au host : rend le trajet public (lecture seule, hors membres), contrôle si
+# le mur de photos est visible aux non-membres, et choisit la photo de couverture
+# (parmi les photos de ce trajet OU les photos personnelles de l'utilisateur postées
+# sur d'autres trajets — toujours visible sur un trajet public, même si
+# show_photos_publicly=false).
+@router.patch("/{trip_id}/visibility", status_code=200)
+def update_trip_visibility(
+    trip_id: int,
+    body: TripVisibilityUpdate,
+    db: Session = Depends(get_db),
+    trip: models.Trip = Depends(get_trip("host")),
+    current_user: models.User = Depends(get_current_user),
+):
+    if body.is_public is not None:
+        trip.is_public = body.is_public
+    if body.show_photos_publicly is not None:
+        trip.show_photos_publicly = body.show_photos_publicly
+
+    if body.clear_cover:
+        trip.cover_photo_id = None
+    elif body.cover_photo_id is not None:
+        photo = db.query(models.TripPhoto).filter(models.TripPhoto.id == body.cover_photo_id).first()
+        if not photo or (photo.trip_id != trip_id and photo.uploaded_by != current_user.id):
+            raise HTTPException(status_code=404, detail="Photo introuvable")
+        trip.cover_photo_id = photo.id
+
+    db.commit()
+    return {
+        "id": trip.id,
+        "is_public": trip.is_public,
+        "show_photos_publicly": trip.show_photos_publicly,
+        "cover_photo_id": trip.cover_photo_id,
+        "cover_photo_url": trip.cover_photo.image_url if trip.cover_photo else None,
+    }
+
+
+# ── GET /trips/{trip_id}/public ────────────────────────────────────────────────
+# Vue en lecture seule d'un trajet public, accessible sans être membre (auth
+# optionnelle, pour appliquer la règle "profil privé du host = amis uniquement").
+# Un membre du trajet accède toujours (peu importe is_public), avec ses photos.
+@router.get("/{trip_id}/public")
+def get_public_trip(
+    trip_id: int,
+    db: Session = Depends(get_db),
+    viewer: Optional[models.User] = Depends(get_current_user_optional),
+):
+    trip = load_trip_or_404(db, trip_id)
+    is_member = viewer is not None and get_trip_role(db, trip, viewer) is not None
+
+    if not is_member and not can_view_trip_publicly(db, trip, viewer):
+        raise HTTPException(status_code=403, detail="Ce trajet n'est pas public")
+
+    show_photos = is_member or trip.show_photos_publicly
+    photos = sorted(trip.photos, key=lambda p: p.created_at, reverse=True) if show_photos else []
+
+    return {
+        "id": trip.id,
+        "name": trip.name,
+        "description": trip.description,
+        "is_public": trip.is_public,
+        "show_photos_publicly": trip.show_photos_publicly,
+        "host": {"id": trip.user.id, "username": trip.user.username, "avatar_url": trip.user.avatar_url},
+        "cover_photo_url": trip.cover_photo.image_url if trip.cover_photo else None,
+        "monuments": [
+            {
+                "monument_id": tm.monument_id,
+                "name": tm.monument.name if tm.monument else None,
+                "city": tm.monument.city if tm.monument else None,
+                "latitude": tm.monument.latitude if tm.monument else None,
+                "longitude": tm.monument.longitude if tm.monument else None,
+                "category": tm.monument.category if tm.monument else None,
+                "order": tm.order,
+                "day": tm.day,
+            }
+            for tm in sorted(trip.trip_monuments, key=lambda x: x.order)
+            if not tm.is_hidden
+        ],
+        "custom_points": [
+            {
+                "custom_point_id": p.id,
+                "name": p.name,
+                "latitude": p.latitude,
+                "longitude": p.longitude,
+                "order": p.order,
+                "day": p.day,
+                "icon": p.icon,
+                "color": p.color,
+            }
+            for p in sorted(trip.custom_points, key=lambda x: x.order)
+            if not p.is_hidden
+        ],
+        "photos": [
+            {
+                "id": p.id,
+                "image_url": p.image_url,
+                "caption": p.caption,
+                "created_at": p.created_at,
+                "uploader_username": p.uploader.username if p.uploader else None,
+                "uploader_avatar_url": p.uploader.avatar_url if p.uploader else None,
+            }
+            for p in photos
+        ],
+    }
 
 
 # ── PATCH /trips/{trip_id} ─────────────────────────────────────────────────────

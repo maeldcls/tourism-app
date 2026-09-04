@@ -1,0 +1,46 @@
+@startuml 02_component_authentification
+!theme plain
+title Diagramme de composants — Authentification (email/mot de passe + Google OAuth)
+
+actor "Utilisateur" as user
+
+package "Frontend (React)" {
+  [LoginPage / RegisterPage] as LoginPage
+  [AuthContext\n(login, logout, updateUser)] as AuthContext
+  [api.js\n(apiFetch — attache le Bearer token,\nintercepte les 401)] as ApiJs
+  LoginPage --> AuthContext : login(user, token)
+  AuthContext --> ApiJs : registerUnauthorizedHandler(logout)
+  LoginPage ..> ApiJs : POST /auth/login\nPOST /auth/register
+  [Pages protégées] as Pages
+  Pages --> ApiJs : requêtes authentifiées
+}
+
+package "Backend (FastAPI)" {
+  [routes/auth.py\n(register, login, google, me)] as AuthRoutes
+  [deps.py\n(get_current_user)] as Deps
+  [security.py\n(SECRET_KEY, ALGORITHM)] as Security
+  [passlib CryptContext\n(bcrypt)] as Bcrypt
+  AuthRoutes --> Bcrypt : hash() / verify()
+  AuthRoutes --> Security : jose.jwt.encode()
+  Deps --> Security : jose.jwt.decode()
+  Pages ..> Deps : Depends(get_current_user)
+}
+
+database "PostgreSQL\n(table users)" as DB
+
+cloud "Google Identity Services" as Google
+
+user --> LoginPage : saisit identifiants\nou clique "Se connecter avec Google"
+ApiJs --> AuthRoutes : HTTP/JSON\nAuthorization: Bearer <JWT>
+AuthRoutes --> DB : SELECT / INSERT User
+AuthRoutes --> Google : verify_oauth2_token(id_token)
+Deps --> DB : SELECT User by id (sub)
+
+note bottom of ApiJs
+  Centralise l'attache du token et la
+  détection du 401 (token expiré),
+  remplace ~20 fetch() dupliqués
+  qui avalaient l'erreur silencieusement.
+end note
+
+@enduml

@@ -480,6 +480,32 @@
   cursor: pointer;
 }
 
+.trip-settings-visibility {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-top: 0.4rem;
+  border-top: 1px solid rgba(82, 81, 116, 0.12);
+}
+
+.trip-settings-toggle--nested {
+  margin-left: 1.5rem;
+  font-weight: 500;
+  font-size: 0.8rem;
+  color: var(--travel-muted);
+}
+
+.trip-settings-public-link {
+  align-self: flex-start;
+  margin-left: 1.5rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--travel-teal);
+  text-decoration: none;
+}
+
+.trip-settings-public-link:hover { text-decoration: underline; }
+
 .trip-settings-daycount {
   display: flex;
   align-items: center;

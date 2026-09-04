@@ -1,7 +1,7 @@
 import { useEffect, useCallback, useRef } from 'react';
 import '../css/ImageLightbox.css';
 
-export default function ImageLightbox({ images, index, onClose, onChange }) {
+export default function ImageLightbox({ images, index, onClose, onChange, captions, subtitles }) {
   const filmRef    = useRef(null);
   const activeRef  = useRef(null);
 
@@ -49,6 +49,14 @@ export default function ImageLightbox({ images, index, onClose, onChange }) {
           </button>
         )}
       </div>
+
+      {/* Légende / memo souvenir, s'il y en a une pour cette photo */}
+      {(subtitles?.[index] || captions?.[index]) && (
+        <div className="lightbox-caption" onClick={e => e.stopPropagation()}>
+          {subtitles?.[index] && <span className="lightbox-caption-author">{subtitles[index]}</span>}
+          {captions?.[index] && <span className="lightbox-caption-text">{captions[index]}</span>}
+        </div>
+      )}
 
       {/* Compteur */}
       <div className="lightbox-counter">{index + 1} / {images.length}</div>

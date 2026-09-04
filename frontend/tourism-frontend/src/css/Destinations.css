@@ -89,6 +89,14 @@
   color: var(--dest-muted);
 }
 
+.dest-header-badges {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+
 .dest-location-badge {
   display: flex;
   align-items: center;
@@ -100,6 +108,21 @@
   font-size: 0.78rem;
   font-weight: 600;
   flex-shrink: 0;
+}
+
+.dest-category-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.35rem 0.6rem 0.35rem 0.7rem;
+  background: var(--dest-plum);
+  color: #fff;
+  border: none;
+  border-radius: 20px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  flex-shrink: 0;
+  cursor: pointer;
 }
 
 /* ── Taste strip ─────────────────────────────────────────────────────────────── */

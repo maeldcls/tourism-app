@@ -15,6 +15,7 @@ from database import get_db
 from deps import get_current_user, get_current_user_optional
 from services.friend_utils import find_friendship, relation_status
 from services.image_processor import ImageProcessor
+from services.trip_utils import can_view_trip_publicly, get_trip_role
 import models
 
 router = APIRouter(prefix="/profile", tags=["Profil"])
@@ -81,6 +82,111 @@ def get_profile(
         "member_since": user.created_at,
         "total_visits": total_visits,
         "badges": badges,
+    }
+
+
+# ── GET /profile/{user_id}/photos ────────────────────────────────────────────────
+# Galerie photo : agrège les photos postées par cet utilisateur sur tous ses trajets
+# (propriétaire ou membre invité). Le propriétaire du profil voit tout ; un tiers ne
+# voit que les photos issues de trajets où il est lui-même membre, ou dont le mur de
+# photos est public et accessible (même règle que GET /trips/{id}/public).
+@router.get("/{user_id}/photos")
+def get_profile_photos(
+    user_id: int,
+    trip_id: Optional[int] = None,
+    limit: int = 20,
+    offset: int = 0,
+    db: Session = Depends(get_db),
+    viewer: Optional[models.User] = Depends(get_current_user_optional),
+):
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User introuvable")
+
+    is_owner = viewer is not None and viewer.id == user_id
+    if not is_owner and not user.is_public:
+        relation = relation_status(find_friendship(db, viewer.id, user_id), viewer.id) if viewer else "none"
+        if relation != "friends":
+            raise HTTPException(status_code=403, detail="Profil privé")
+
+    query = db.query(models.TripPhoto).filter(models.TripPhoto.uploaded_by == user_id)
+    if trip_id is not None:
+        query = query.filter(models.TripPhoto.trip_id == trip_id)
+    photos = query.order_by(models.TripPhoto.created_at.desc()).all()
+
+    if not is_owner:
+        photos = [
+            p for p in photos
+            if p.trip is not None and (
+                (viewer is not None and get_trip_role(db, p.trip, viewer) is not None)
+                or (p.trip.show_photos_publicly and can_view_trip_publicly(db, p.trip, viewer))
+            )
+        ]
+
+    total = len(photos)
+    page = photos[offset:offset + limit]
+    return {
+        "total": total,
+        "has_more": offset + limit < total,
+        "items": [
+            {
+                "id": p.id,
+                "image_url": p.image_url,
+                "caption": p.caption,
+                "created_at": p.created_at,
+                "trip_id": p.trip_id,
+                "trip_name": p.trip.name if p.trip else None,
+            }
+            for p in page
+        ],
+    }
+
+
+# ── GET /profile/{user_id}/trips/public ──────────────────────────────────────────
+# Preview/liste des trajets publics d'un utilisateur (ceux qu'il possède, pas ses
+# collaborations), pour affichage sur son profil. Même règle de visibilité que
+# GET /trips/{id}/public (profil privé du propriétaire = amis uniquement).
+@router.get("/{user_id}/trips/public")
+def get_profile_public_trips(
+    user_id: int,
+    limit: int = 6,
+    offset: int = 0,
+    db: Session = Depends(get_db),
+    viewer: Optional[models.User] = Depends(get_current_user_optional),
+):
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User introuvable")
+
+    is_owner = viewer is not None and viewer.id == user_id
+
+    trips = (
+        db.query(models.Trip)
+        .filter(models.Trip.user_id == user_id, models.Trip.is_public.is_(True))
+        .order_by(models.Trip.created_at.desc())
+        .all()
+    )
+    if not is_owner:
+        trips = [t for t in trips if can_view_trip_publicly(db, t, viewer)]
+
+    total = len(trips)
+    page = trips[offset:offset + limit]
+    return {
+        "total": total,
+        "has_more": offset + limit < total,
+        "items": [
+            {
+                "id": t.id,
+                "name": t.name,
+                "description": t.description,
+                "start_date": t.start_date,
+                "end_date": t.end_date,
+                "status": t.status,
+                "cover_photo_url": t.cover_photo.image_url if t.cover_photo else None,
+                "monuments_count": len(t.trip_monuments),
+            }
+            for t in page
+        ],
     }
 
 

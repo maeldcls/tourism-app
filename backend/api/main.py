@@ -48,6 +48,9 @@ from routes.friends import router as friends_router
 from routes.notifications import router as notifications_router
 from routes.trip_collaborators import router as trip_collaborators_router
 from routes.trip_locations import router as trip_locations_router
+from routes.trip_photos import router as trip_photos_router
+from routes.admin_featured import router as admin_featured_router
+from routes.featured_destinations import router as featured_destinations_router
 
 app = FastAPI(title="Tourism API")
 
@@ -84,6 +87,9 @@ app.include_router(friends_router)
 app.include_router(notifications_router)
 app.include_router(trip_collaborators_router)
 app.include_router(trip_locations_router)
+app.include_router(trip_photos_router)
+app.include_router(admin_featured_router)
+app.include_router(featured_destinations_router)
 
 # Fichiers statiques — photos communautaires uploadées (créé par routes.monument_photos à l'import)
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")

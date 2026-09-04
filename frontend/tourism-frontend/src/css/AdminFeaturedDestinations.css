@@ -1,0 +1,208 @@
+.afd-create-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-bottom: 1.25rem;
+  padding: 0.9rem;
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.07), 0 4px 12px rgba(0,0,0,0.04);
+}
+
+.afd-input {
+  width: 100%;
+  padding: 0.5rem 0.7rem;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-family: inherit;
+  color: #1e3a5f;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.afd-input:focus {
+  border-color: #1e3a5f;
+}
+
+.afd-file-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.8rem;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.afd-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.82rem;
+  color: #334155;
+  font-weight: 600;
+}
+
+.afd-btn--add {
+  align-self: flex-start;
+  background: #1e3a5f;
+  color: #fff;
+}
+
+.afd-btn--add:hover:not(:disabled) {
+  background: #2d5282;
+}
+
+/* ── Recherche de ville ────────────────────────────────────────────────── */
+.afd-city-picker {
+  position: relative;
+}
+
+.afd-city-results {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 10;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.afd-city-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.5rem 0.7rem;
+  border: none;
+  background: none;
+  font-size: 0.82rem;
+  color: #334155;
+  cursor: pointer;
+}
+
+.afd-city-item:hover {
+  background: #f1f5f9;
+}
+
+.afd-city-status {
+  padding: 0.6rem 0.7rem;
+  font-size: 0.8rem;
+  color: #94a3b8;
+}
+
+/* ── Cards ─────────────────────────────────────────────────────────────── */
+.afd-card-head {
+  display: flex;
+  gap: 0.7rem;
+  margin-bottom: 0.6rem;
+}
+
+.afd-cover-thumb {
+  width: 64px;
+  height: 64px;
+  border-radius: 10px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.afd-card-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.afd-status-badge {
+  align-self: flex-start;
+  margin-top: 0.2rem;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.afd-status-badge--active {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.afd-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.afd-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* ── Monuments incontournables ────────────────────────────────────────── */
+.afd-monuments {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #eef0f3;
+}
+
+.afd-monuments-label {
+  margin: 0 0 0.4rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.afd-monument-list {
+  list-style: none;
+  margin: 0 0 0.6rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.afd-monument-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.82rem;
+  color: #334155;
+}
+
+.afd-monument-results {
+  list-style: none;
+  margin: 0.4rem 0 0;
+  padding: 0;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.afd-monument-result {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.5rem 0.7rem;
+  border: none;
+  border-bottom: 1px solid #f1f5f9;
+  background: #fff;
+  font-size: 0.82rem;
+  color: #334155;
+  cursor: pointer;
+}
+
+.afd-monument-result:last-child {
+  border-bottom: none;
+}
+
+.afd-monument-result:hover {
+  background: #f1f5f9;
+}

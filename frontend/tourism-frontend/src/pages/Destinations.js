@@ -1,9 +1,11 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import API_URL from '../config';
 import RecommendationCard from '../components/RecommendationCard';
 import DestinationsSearchBar from '../components/DestinationsSearchBar';
 import DestinationsFilterSheet from '../components/DestinationsFilterSheet';
+import { CATEGORIES } from '../utils/monumentCategories';
 import '../css/Destinations.css';
 
 const API = API_URL;
@@ -51,11 +53,15 @@ function useGeolocation() {
 export default function Destinations() {
   const { user, token } = useAuth();
   const position = useGeolocation();
+  const [searchParams] = useSearchParams();
 
   const [mode, setMode] = useState('recommended');
   const [city, setCity] = useState(null);
   const [radiusKm, setRadiusKm] = useState(null);
   const [filterOpen, setFilterOpen] = useState(false);
+  // Arrivée depuis un chip de thème sur la Home (?category=musee) — filtre
+  // volontairement pas synchronisé dans l'URL ensuite, comme city/radiusKm.
+  const [category, setCategory] = useState(() => searchParams.get('category'));
 
   const [items, setItems] = useState([]);
   const [offset, setOffset] = useState(0);
@@ -93,6 +99,7 @@ export default function Destinations() {
         params.set('lon', center.lon);
         if (radiusKm) params.set('max_km', radiusKm);
       }
+      if (category) params.set('category', category);
 
       const resp = await fetch(`${API}/recommendations?${params}`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -111,7 +118,7 @@ export default function Destinations() {
       setLoading(false);
       setInitialLoading(false);
     }
-  }, [user, token, mode, center, radiusKm]);
+  }, [user, token, mode, center, radiusKm, category]);
 
   // Chargement initial — attend que la position soit déterminée (ou timeout)
   useEffect(() => {
@@ -192,14 +199,24 @@ export default function Destinations() {
           <h1 className="dest-title">Découvrir</h1>
           <p className="dest-subtitle">{copy.subtitle[historyKey]}</p>
         </div>
-        {centerLabel && (
-          <span className="dest-location-badge">
-            <svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13">
-              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" />
-            </svg>
-            {city ? city.name : 'À proximité'}
-          </span>
-        )}
+        <div className="dest-header-badges">
+          {centerLabel && (
+            <span className="dest-location-badge">
+              <svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13">
+                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" />
+              </svg>
+              {city ? city.name : 'À proximité'}
+            </span>
+          )}
+          {category && (
+            <button className="dest-category-badge" onClick={() => setCategory(null)}>
+              {CATEGORIES[category]?.icon} {CATEGORIES[category]?.label || category}
+              <svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12">
+                <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
+              </svg>
+            </button>
+          )}
+        </div>
       </div>
 
       {mode === 'recommended' && hasHistory && topThemes.length > 0 && (

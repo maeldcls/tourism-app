@@ -1,0 +1,30 @@
+@startuml 05_sequence_login
+!theme plain
+title Diagramme de séquence — Connexion (email / mot de passe)
+
+actor Utilisateur
+participant "LoginPage\n(React)" as LoginPage
+participant "AuthContext" as AuthContext
+participant "POST /auth/login\n(routes/auth.py)" as API
+database "PostgreSQL\n(users)" as DB
+
+Utilisateur -> LoginPage : saisit email + mot de passe\nclique "Se connecter"
+LoginPage -> API : fetch POST /auth/login\n{ email, password }
+API -> DB : SELECT * FROM users\nWHERE email = ?
+DB --> API : User(password_hash, ...)
+
+alt utilisateur introuvable OU mot de passe incorrect
+  API -> API : pwd_context.verify(password, hash) -> false
+  API --> LoginPage : 401 "Email ou mot de passe incorrect"
+  LoginPage -> Utilisateur : affiche l'erreur
+else identifiants valides
+  API -> API : pwd_context.verify(password, hash) -> true
+  API -> API : create_access_token(user.id)\njwt.encode({sub, exp: +30j}, SECRET_KEY)
+  API --> LoginPage : 200 { access_token, user }
+  LoginPage -> AuthContext : login(user, access_token)
+  AuthContext -> AuthContext : localStorage.setItem\n("auth_token", "auth_user")
+  AuthContext --> LoginPage : état "connecté"
+  LoginPage -> Utilisateur : redirection vers l'accueil
+end
+
+@enduml

@@ -1,0 +1,71 @@
+@startuml 03_deployment_infrastructure
+!theme plain
+title Diagramme de déploiement — Infrastructure Docker / CI-CD
+
+actor "Visiteur" as visitor
+
+node "Poste développeur" {
+  artifact "docker-compose.yml" as ComposeDev
+  node "Container: db\n(postgres:16)" as DevDb {
+    component "port hôte 5433 -> 5432" as DevDbPort
+  }
+  node "Container: api\n(build ./backend/api)" as DevApi {
+    component "FastAPI :8000"
+  }
+  node "Container: ai\n(build ./backend/ai)" as DevAi {
+    component "Service NLP :8001"
+  }
+  node "Container: frontend\n(build React -> nginx)" as DevFront {
+    component "nginx :3000 -> 80"
+  }
+  DevApi --> DevDb : SQLAlchemy\n(DATABASE_URL, .env)
+  DevApi --> DevAi : recommandations
+  DevFront --> DevApi : REACT_APP_API_URL
+}
+
+node "GitHub" {
+  artifact "Dépôt (branche main)" as Repo
+  node "GitHub Actions\n(.github/workflows/pipeline.yml)" as CI {
+    component "build & push images"
+  }
+  Repo --> CI : push sur main
+}
+
+cloud "Docker Hub" as Hub {
+  artifact "maeldcls/tourism-api" as ImgApi
+  artifact "maeldcls/tourism-ai" as ImgAi
+  artifact "maeldcls/tourism-frontend" as ImgFront
+}
+
+node "Serveur RunCloud (production)" {
+  artifact "docker-compose.prod.yml\n+ .env (server-only secrets)" as ComposeProd
+  node "Container: db\n(aucun port exposé)" as ProdDb
+  node "Container: api :8000" as ProdApi
+  node "Container: ai :8001" as ProdAi
+  node "Container: frontend :3000 -> 80" as ProdFront
+  ProdApi --> ProdDb : réseau Docker interne\n(pas d'accès externe)
+  ProdApi --> ProdAi
+  ProdFront --> ProdApi
+}
+
+CI --> Hub : docker push
+CI --> "Serveur RunCloud (production)" : déploiement SSH\n(docker compose pull && up -d)
+Hub --> ComposeProd : docker compose pull
+
+visitor --> ProdFront : HTTPS (domaine géré par RunCloud)
+
+note right of ProdDb
+  Contrairement à l'environnement dev
+  (port 5433 publié), la base de prod
+  n'expose aucun port : accessible
+  uniquement depuis les autres
+  containers du même réseau Docker.
+end note
+
+note bottom of CI
+  Pas d'environnement de staging :
+  tout push sur main déploie
+  automatiquement en production.
+end note
+
+@enduml

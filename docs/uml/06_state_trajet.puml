@@ -1,0 +1,30 @@
+@startuml 06_state_trajet
+!theme plain
+title Diagramme d'état — Statut d'un trajet (Trip)
+
+[*] --> Planifie : création du trajet\n(POST /trips)
+
+state Planifie : aucun monument visité\n(visited = 0)
+state EnCours : au moins un monument visité,\nmais pas tous (0 < visited < total)
+state Termine : tous les monuments\nsont visités (visited = total)
+
+Planifie --> EnCours : marquer un monument visité\n(PATCH .../monuments/{id}\n{ is_visited: true })
+EnCours --> Termine : marquer le dernier monument\nnon visité comme visité
+Termine --> EnCours : marquer un monument\ncomme non visité
+EnCours --> Planifie : marquer le dernier monument\nvisité comme non visité
+
+Planifie --> [*] : suppression du trajet\n(DELETE /trips/{id})
+EnCours --> [*] : suppression du trajet
+Termine --> [*] : suppression du trajet
+
+note right of Planifie
+  Le statut n'est pas un champ édité
+  manuellement : il est recalculé côté
+  front (Travel.js) à partir du ratio
+  de TripMonument.is_visited, à chaque
+  changement de visite.
+  Cas particulier : un trajet vide
+  (0 monument) est considéré Planifié.
+end note
+
+@enduml

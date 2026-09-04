@@ -8,6 +8,7 @@ import { useMonumentImages } from '../hooks/useMonumentImages';
 import MonumentIconEditor from '../components/MonumentIconEditor';
 import ConfirmDialog from '../components/ConfirmDialog';
 import ShareTripSheet from '../components/ShareTripSheet';
+import TripPhotosSheet from '../components/TripPhotosSheet';
 import { ICON_LIBRARY } from '../utils/pointIcons';
 import {
   DndContext, DragOverlay, PointerSensor, KeyboardSensor,
@@ -331,7 +332,7 @@ function DayGroup({ id, label, items, justToggled, onToggleVisited, onRemove, re
   );
 }
 
-function TripCard({ trip, onRemoveItem, onDeleteTrip, onToggleVisited, justToggled, onReorderItems, onPersistOrder, onUpdateSettings, onUpdateItemIcon, onRemoveMember, onLeaveTrip }) {
+function TripCard({ trip, onRemoveItem, onDeleteTrip, onToggleVisited, justToggled, onReorderItems, onPersistOrder, onUpdateSettings, onUpdateItemIcon, onRemoveMember, onLeaveTrip, onUpdateVisibility, onPatchTrip }) {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -339,6 +340,7 @@ function TripCard({ trip, onRemoveItem, onDeleteTrip, onToggleVisited, justToggl
   const [removingId, setRemovingId] = useState(null);
   const [editingSettings, setEditingSettings] = useState(false);
   const [sharing, setSharing] = useState(false);
+  const [showingPhotos, setShowingPhotos] = useState(false);
   const [confirmRemoveMember, setConfirmRemoveMember] = useState(null);
   const [removingMemberId, setRemovingMemberId] = useState(null);
   const [confirmLeave, setConfirmLeave] = useState(false);
@@ -516,6 +518,12 @@ function TripCard({ trip, onRemoveItem, onDeleteTrip, onToggleVisited, justToggl
           )}
 
           <div className="trip-settings-row">
+            <button className="trip-settings-btn" onClick={() => setShowingPhotos(true)}>
+              <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14">
+                <path d="M9 2L7.17 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2h-3.17L15 2H9zm3 15c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z" />
+                </svg>
+              Photos
+            </button>
             {canEdit && (
               <button className="trip-settings-btn" onClick={() => setEditingSettings(o => !o)}>
                 <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14">
@@ -563,6 +571,38 @@ function TripCard({ trip, onRemoveItem, onDeleteTrip, onToggleVisited, justToggl
                       aria-label="Ajouter un jour"
                     >+</button>
                   </div>
+                </div>
+              )}
+              {isHost && (
+                <div className="trip-settings-visibility">
+                  <label className="trip-settings-toggle">
+                    <input
+                      type="checkbox"
+                      checked={!!trip.is_public}
+                      onChange={e => onUpdateVisibility(trip.id, { is_public: e.target.checked })}
+                    />
+                    Rendre ce trajet visible publiquement (lecture seule, sans rejoindre)
+                  </label>
+                  {trip.is_public && (
+                    <label className="trip-settings-toggle trip-settings-toggle--nested">
+                      <input
+                        type="checkbox"
+                        checked={trip.show_photos_publicly !== false}
+                        onChange={e => onUpdateVisibility(trip.id, { show_photos_publicly: e.target.checked })}
+                      />
+                      Afficher les photos aux visiteurs
+                    </label>
+                  )}
+                  {trip.is_public && (
+                    <a
+                      className="trip-settings-public-link"
+                      href={`/trips/${trip.id}/public`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      Voir la page publique ↗
+                    </a>
+                  )}
                 </div>
               )}
               {isHost && trip.members && trip.members.filter(m => m.role !== 'host').length > 0 && (
@@ -748,6 +788,15 @@ function TripCard({ trip, onRemoveItem, onDeleteTrip, onToggleVisited, justToggl
       )}
 
       {sharing && <ShareTripSheet trip={trip} onClose={() => setSharing(false)} />}
+
+      {showingPhotos && (
+        <TripPhotosSheet
+          trip={trip}
+          isHost={isHost}
+          onClose={() => setShowingPhotos(false)}
+          onCoverChange={onPatchTrip}
+        />
+      )}
 
       <ConfirmDialog
         open={confirmingDeleteTrip}
@@ -968,6 +1017,26 @@ export default function Travel() {
     }
   }
 
+  function patchTripLocal(tripId, patch) {
+    setTrips(prev => prev.map(t => t.id !== tripId ? t : { ...t, ...patch }));
+  }
+
+  async function updateTripVisibility(tripId, patch) {
+    patchTripLocal(tripId, patch);
+    try {
+      const r = await apiFetch(`/trips/${tripId}/visibility`, {
+        method: 'PATCH',
+        body: JSON.stringify(patch),
+      });
+      if (!r.ok) throw new Error();
+      const data = await r.json();
+      patchTripLocal(tripId, data);
+    } catch {
+      setActionError('Les réglages de visibilité n\'ont pas pu être enregistrés.');
+      fetchTrips();
+    }
+  }
+
   return (
     <div className="travel-page">
       <div className="travel-header">
@@ -1049,6 +1118,8 @@ export default function Travel() {
               onUpdateItemIcon={updateItemIcon}
               onRemoveMember={removeMember}
               onLeaveTrip={leaveTrip}
+              onUpdateVisibility={updateTripVisibility}
+              onPatchTrip={patchTripLocal}
             />
           ))}
         </div>

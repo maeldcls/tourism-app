@@ -27,6 +27,7 @@ def get_recommendations(
     lat: Optional[float] = Query(None),
     lon: Optional[float] = Query(None),
     max_km: Optional[float] = Query(None, description="Rayon de recherche en km (optionnel)"),
+    category: Optional[str] = Query(None, description="Filtrer par catégorie (monument, musee, parc...)"),
     offset: int = Query(0, ge=0),
     limit: int = Query(10, ge=1, le=50),
     db: Session = Depends(get_db),
@@ -36,4 +37,4 @@ def get_recommendations(
         raise HTTPException(status_code=404, detail="Utilisateur introuvable")
 
     strategy = STRATEGIES[mode]
-    return strategy.get_recommendations(db, user, lat, lon, max_km, offset, limit)
+    return strategy.get_recommendations(db, user, lat, lon, max_km, category, offset, limit)

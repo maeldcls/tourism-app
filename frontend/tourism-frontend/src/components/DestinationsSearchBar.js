@@ -1,20 +1,9 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
+import { searchCities } from '../utils/citySearch';
 import '../css/DestinationsSearchBar.css';
 
 const DEBOUNCE_MS = 400;
 const MIN_LENGTH = 2;
-
-const CITY_ADDRESS_TYPES = new Set(['city', 'town', 'village', 'municipality', 'hamlet']);
-
-// Géocodage de villes via Nominatim/OpenStreetMap — même source que MapSearchBar,
-// filtré côté client aux résultats de type "lieu" (ville/village…) pour exclure adresses et POI.
-async function searchCities(query, signal) {
-  const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=6&addressdetails=1&accept-language=fr&q=${encodeURIComponent(query)}`;
-  const res = await fetch(url, { signal });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const data = await res.json();
-  return data.filter(p => CITY_ADDRESS_TYPES.has(p.addresstype));
-}
 
 export default function DestinationsSearchBar({ city, onSelectCity, onOpenFilter, filterActive }) {
   const [query, setQuery] = useState(city?.name ?? '');

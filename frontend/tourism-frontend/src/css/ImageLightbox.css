@@ -79,6 +79,34 @@
 .lightbox-nav--prev { left: -58px; }
 .lightbox-nav--next { right: -58px; }
 
+/* Légende / memo souvenir */
+.lightbox-caption {
+  max-width: min(90vw, 480px);
+  margin-top: 0.7rem;
+  padding: 0.55rem 0.9rem;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  text-align: center;
+}
+
+.lightbox-caption-author {
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.lightbox-caption-text {
+  color: #fff;
+  font-size: 0.92rem;
+  line-height: 1.4;
+  white-space: pre-wrap;
+}
+
 /* Compteur */
 .lightbox-counter {
   color: rgba(255, 255, 255, 0.65);

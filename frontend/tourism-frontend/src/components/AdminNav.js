@@ -5,6 +5,7 @@ const ADMIN_LINKS = [
   { to: '/admin/comments', label: 'Commentaires' },
   { to: '/admin/tags', label: 'Tags' },
   { to: '/admin/photos', label: 'Photos' },
+  { to: '/admin/featured-destinations', label: 'Destinations' },
 ];
 
 export default function AdminNav() {

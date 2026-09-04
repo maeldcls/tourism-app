@@ -1,0 +1,42 @@
+@startuml 07_usecase_commentaires_moderation
+!theme plain
+title Diagramme de cas d'utilisation — Commentaires & modération
+
+left to right direction
+
+actor "Utilisateur\nauthentifié" as User
+actor "Administrateur" as Admin
+actor "Service de\nmodération IA" as AI <<système>>
+
+Admin --|> User
+
+rectangle "Commentaires sur les monuments" {
+  usecase "Consulter les commentaires\nd'un monument" as UC1
+  usecase "Poster un commentaire" as UC2
+  usecase "Supprimer son propre\ncommentaire" as UC3
+  usecase "Analyser le commentaire\n(modération automatique)" as UC4
+  usecase "Consulter la file\nde modération" as UC5
+  usecase "Restaurer un commentaire\n(faux positif IA)" as UC6
+  usecase "Supprimer définitivement\nun commentaire" as UC7
+}
+
+User --> UC1
+User --> UC2
+User --> UC3
+UC2 ..> UC4 : <<include>>
+UC4 --> AI
+
+Admin --> UC5
+Admin --> UC6
+Admin --> UC7
+UC5 ..> UC6 : <<extend>>
+UC5 ..> UC7 : <<extend>>
+
+note bottom of UC4
+  Si le service IA est indisponible,
+  le commentaire est mis en attente
+  par précaution (voir diagramme
+  d'activité dédié).
+end note
+
+@enduml

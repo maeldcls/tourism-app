@@ -7,9 +7,11 @@ import Home from './pages/Home';
 import Destinations from './pages/Destinations';
 import MapPage from './pages/MapPage';
 import Travel from './pages/Travel';
+import PublicTrip from './pages/PublicTrip';
 import Monument from './pages/Monument';
 import Profile from './pages/Profile';
 import UserProfile from './pages/UserProfile';
+import ProfilePhotos from './pages/ProfilePhotos';
 import Friends from './pages/Friends';
 import VisitedPlaces from './pages/VisitedPlaces';
 import Stats from './pages/Stats';
@@ -18,6 +20,7 @@ import Register from './pages/Register';
 import AdminComments from './pages/AdminComments';
 import AdminTags from './pages/AdminTags';
 import AdminPhotos from './pages/AdminPhotos';
+import AdminFeaturedDestinations from './pages/AdminFeaturedDestinations';
 
 const NO_NAVBAR = ['/login', '/register'];
 
@@ -57,9 +60,11 @@ function Layout() {
         <Route path="/destinations" element={<Destinations />} />
         <Route path="/map" element={<MapPage />} />
         <Route path="/travel" element={<ProtectedRoute><Travel /></ProtectedRoute>} />
+        <Route path="/trips/:tripId/public" element={<PublicTrip />} />
         <Route path="/monument" element={<Monument />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/profile/:userId" element={<UserProfile />} />
+        <Route path="/profile/:userId/photos" element={<ProfilePhotos />} />
         <Route path="/friends" element={<ProtectedRoute><Friends /></ProtectedRoute>} />
         <Route path="/visited" element={<ProtectedRoute><VisitedPlaces /></ProtectedRoute>} />
         <Route path="/stats" element={<Stats />} />
@@ -67,6 +72,7 @@ function Layout() {
         <Route path="/admin/comments" element={<AdminRoute><AdminComments /></AdminRoute>} />
         <Route path="/admin/tags" element={<AdminRoute><AdminTags /></AdminRoute>} />
         <Route path="/admin/photos" element={<AdminRoute><AdminPhotos /></AdminRoute>} />
+        <Route path="/admin/featured-destinations" element={<AdminRoute><AdminFeaturedDestinations /></AdminRoute>} />
       </Routes>
       {showNavbar && <Navbar />}
     </>

@@ -61,6 +61,20 @@ def get_trip(min_role: str = "read") -> Callable[..., models.Trip]:
     return _dependency
 
 
+def can_view_trip_publicly(db: Session, trip: models.Trip, viewer: Optional[models.User]) -> bool:
+    """Un non-membre peut consulter l'itinéraire d'un trajet marqué public si, en plus,
+    le profil de son propriétaire l'autorise : profil public → tout le monde, profil
+    privé → amis uniquement (même règle que la consultation du profil lui-même)."""
+    if not trip.is_public:
+        return False
+    if trip.user.is_public:
+        return True
+    if viewer is None:
+        return False
+    from services.friend_utils import find_friendship, relation_status
+    return relation_status(find_friendship(db, viewer.id, trip.user_id), viewer.id) == "friends"
+
+
 def accessible_trip_ids(db: Session, user_id: int) -> list:
     """Liste des ids de trajets possédés OU partagés (collaboration acceptée) avec l'utilisateur."""
     owned = [row[0] for row in db.query(models.Trip.id).filter(models.Trip.user_id == user_id).all()]

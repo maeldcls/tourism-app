@@ -13,6 +13,7 @@ import { useAuth } from '../context/AuthContext';
 import { apiFetch } from '../services/api';
 import API_URL from '../config';
 import { makePointIcon } from '../utils/pointIcons';
+import { getCategory } from '../utils/monumentCategories';
 
 // ── Constantes ────────────────────────────────────────────────────────────────
 const MIN_ZOOM  = 13;   // en dessous → pas de chargement des POI
@@ -38,21 +39,6 @@ function savePos(lat, lng, zoom) {
 }
 
 const API = API_URL;
-
-// ── Catégories ────────────────────────────────────────────────────────────────
-const CATEGORIES = {
-  monument:   { color: '#f57c00', label: 'Monument'   },
-  musee:      { color: '#7b1fa2', label: 'Musée'      },
-  parc:       { color: '#388e3c', label: 'Parc'       },
-  eglise:     { color: '#fbc02d', label: 'Église'     },
-  nature:     { color: '#00897b', label: 'Nature'     },
-  restaurant: { color: '#e53935', label: 'Restaurant' },
-  autre:      { color: '#2196f3', label: 'Autre'      },
-};
-
-function getCategory(key) {
-  return CATEGORIES[key] || CATEGORIES.autre;
-}
 
 function makeIcon(color, selected = false) {
   const size = selected ? 32 : 24;

@@ -3,12 +3,15 @@ import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import NotificationBell from '../components/NotificationBell';
 import VisitedMonumentCard from '../components/VisitedMonumentCard';
+import ImageLightbox from '../components/ImageLightbox';
 import { useInstallPrompt } from '../hooks/useInstallPrompt';
 import API_URL from '../config';
 import '../css/Profile.css';
 
 const API = API_URL;
 const VISITED_PREVIEW_COUNT = 6;
+const PHOTOS_PREVIEW_COUNT = 6;
+const TRIPS_PREVIEW_COUNT = 4;
 
 export default function Profile() {
   const { user, token, logout, updateUser } = useAuth();
@@ -27,6 +30,15 @@ export default function Profile() {
   const [visitedTotal, setVisitedTotal] = useState(0);
   const [visitedLoading, setVisitedLoading] = useState(true);
 
+  const [photosPreview, setPhotosPreview] = useState([]);
+  const [photosTotal, setPhotosTotal] = useState(0);
+  const [photosLoading, setPhotosLoading] = useState(true);
+  const [lightboxIndex, setLightboxIndex] = useState(null);
+
+  const [tripsPreview, setTripsPreview] = useState([]);
+  const [tripsTotal, setTripsTotal] = useState(0);
+  const [tripsLoading, setTripsLoading] = useState(true);
+
   useEffect(() => {
     if (!user || !token) return;
     let cancelled = false;
@@ -41,6 +53,40 @@ export default function Profile() {
       })
       .catch(() => {})
       .finally(() => { if (!cancelled) setVisitedLoading(false); });
+    return () => { cancelled = true; };
+  }, [user, token]);
+
+  useEffect(() => {
+    if (!user || !token) return;
+    let cancelled = false;
+    fetch(`${API}/profile/${user.id}/photos?limit=${PHOTOS_PREVIEW_COUNT}&offset=0`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(r => (r.ok ? r.json() : null))
+      .then(data => {
+        if (cancelled || !data) return;
+        setPhotosPreview(data.items);
+        setPhotosTotal(data.total);
+      })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setPhotosLoading(false); });
+    return () => { cancelled = true; };
+  }, [user, token]);
+
+  useEffect(() => {
+    if (!user || !token) return;
+    let cancelled = false;
+    fetch(`${API}/profile/${user.id}/trips/public?limit=${TRIPS_PREVIEW_COUNT}&offset=0`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(r => (r.ok ? r.json() : null))
+      .then(data => {
+        if (cancelled || !data) return;
+        setTripsPreview(data.items);
+        setTripsTotal(data.total);
+      })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setTripsLoading(false); });
     return () => { cancelled = true; };
   }, [user, token]);
 
@@ -291,10 +337,95 @@ export default function Profile() {
           )}
         </div>
 
+        <div className="profile-visited-section">
+          <div className="profile-visited-header">
+            <h2 className="profile-visited-title">Photos de mes trajets</h2>
+            {photosTotal > 0 && <span className="profile-visited-count">{photosTotal}</span>}
+          </div>
+
+          {photosLoading && (
+            <div className="profile-photos-grid">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="profile-visited-skeleton" />
+              ))}
+            </div>
+          )}
+
+          {!photosLoading && photosPreview.length === 0 && (
+            <p className="profile-visited-empty">
+              Aucune photo pour l'instant. Ajoutez-en depuis un trajet !
+            </p>
+          )}
+
+          {!photosLoading && photosPreview.length > 0 && (
+            <>
+              <div className="profile-photos-grid">
+                {photosPreview.map((p, i) => (
+                  <button key={p.id} className="profile-photo-thumb" onClick={() => setLightboxIndex(i)}>
+                    <img src={`${API}${p.image_url}`} alt="" />
+                  </button>
+                ))}
+              </div>
+              {photosTotal > photosPreview.length && (
+                <button className="profile-visited-more-btn" onClick={() => navigate(`/profile/${user.id}/photos`)}>
+                  Voir plus
+                </button>
+              )}
+            </>
+          )}
+        </div>
+
+        <div className="profile-visited-section">
+          <div className="profile-visited-header">
+            <h2 className="profile-visited-title">Mes trajets publics</h2>
+            {tripsTotal > 0 && <span className="profile-visited-count">{tripsTotal}</span>}
+          </div>
+
+          {tripsLoading && (
+            <div className="profile-trips-grid">
+              {Array.from({ length: 2 }).map((_, i) => (
+                <div key={i} className="profile-visited-skeleton" />
+              ))}
+            </div>
+          )}
+
+          {!tripsLoading && tripsPreview.length === 0 && (
+            <p className="profile-visited-empty">
+              Aucun trajet public pour l'instant. Rendez un trajet visible depuis la page Voyages !
+            </p>
+          )}
+
+          {!tripsLoading && tripsPreview.length > 0 && (
+            <div className="profile-trips-grid">
+              {tripsPreview.map(t => (
+                <a key={t.id} className="profile-trip-card" href={`/trips/${t.id}/public`} target="_blank" rel="noopener noreferrer">
+                  <div className="profile-trip-cover">
+                    {t.cover_photo_url
+                      ? <img src={`${API}${t.cover_photo_url}`} alt="" />
+                      : <span className="profile-trip-cover-placeholder" />}
+                  </div>
+                  <span className="profile-trip-name">{t.name}</span>
+                </a>
+              ))}
+            </div>
+          )}
+        </div>
+
         <button className="profile-logout-btn" onClick={handleLogout}>
           Se déconnecter
         </button>
       </div>
+
+      {lightboxIndex !== null && (
+        <ImageLightbox
+          images={photosPreview.map(p => `${API}${p.image_url}`)}
+          index={lightboxIndex}
+          onClose={() => setLightboxIndex(null)}
+          onChange={setLightboxIndex}
+          captions={photosPreview.map(p => p.caption)}
+          subtitles={photosPreview.map(p => p.trip_name ? `Trajet : ${p.trip_name}` : null)}
+        />
+      )}
     </div>
   );
 }

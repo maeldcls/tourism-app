@@ -1,0 +1,56 @@
+@startuml 04_activity_moderation_commentaire
+!theme plain
+title Diagramme d'activité — Publication et modération d'un commentaire
+
+|Utilisateur|
+start
+:Rédige un commentaire\nsur un monument;
+:POST /monuments/{id}/comments;
+
+|API Commentaires\n(backend)|
+:Vérifie que le monument existe;
+:Appelle le service IA\nPOST ai:8001/moderate-comment\n(timeout 8s);
+
+|Service IA|
+if (Service disponible ?) then (oui)
+  :Analyse le texte;
+  :Retourne score + flagged;
+else (non / timeout)
+  :Exception côté API;
+endif
+
+|API Commentaires\n(backend)|
+if (Service IA indisponible\nou flagged = true ?) then (oui)
+  :status = "pending_review";
+  :ai_flagged_at = now();
+  note right
+    Par précaution : un service IA
+    indisponible met en attente
+    plutôt que publier en aveugle.
+  end note
+else (non, contenu sain)
+  :status = "visible";
+endif
+:Enregistre le commentaire en base;
+
+|Utilisateur|
+if (status = "visible" ?) then (oui)
+  :Commentaire visible\nimmédiatement sur le monument;
+  stop
+else (pending_review)
+  :Commentaire masqué,\nen attente de modération;
+endif
+
+|Administrateur|
+:Consulte la file\nGET /admin/comments?status=pending_review;
+if (Commentaire légitime\n(faux positif IA) ?) then (oui)
+  :POST /admin/comments/{id}/restore;
+  :status = "visible";
+  stop
+else (contenu réellement offensant)
+  :DELETE /admin/comments/{id};
+  :status = "removed";
+  stop
+endif
+
+@enduml
