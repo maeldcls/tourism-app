@@ -6,6 +6,7 @@ import { CATEGORIES } from '../utils/monumentCategories';
 import HorizontalRail from '../components/HorizontalRail';
 import HomeMonumentTile from '../components/HomeMonumentTile';
 import API_URL from '../config';
+import logo from '../assets/logo.webp';
 import '../css/Home.css';
 
 const API = API_URL;
@@ -151,6 +152,10 @@ export default function Home() {
   return (
     <div className="home-page">
       <header className="home-hero">
+        <div className="home-brand">
+          <img src={logo} alt="" className="home-brand-logo" />
+          <span className="home-brand-name">Sillage</span>
+        </div>
         <h1 className="home-hero-title">Où souffle votre prochain voyage ?</h1>
         <p className="home-hero-subtitle">Préparez, vivez et retrouvez vos voyages, un monument à la fois.</p>
       </header>

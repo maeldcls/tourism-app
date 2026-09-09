@@ -4,6 +4,7 @@ import axios from 'axios';
 import { GoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../context/AuthContext';
 import API_URL from '../config';
+import logo from '../assets/logo.webp';
 import '../css/Auth.css';
 
 export default function Register() {
@@ -48,8 +49,12 @@ export default function Register() {
   return (
     <div className="auth-page">
       <div className="auth-card">
+        <div className="auth-brand">
+          <img src={logo} alt="Sillage" className="auth-brand-logo" />
+          <span className="auth-brand-name">Sillage</span>
+        </div>
         <h1 className="auth-title">Inscription</h1>
-        <p className="auth-subtitle">Rejoins la Carte Touristique</p>
+        <p className="auth-subtitle">Rejoins Sillage</p>
 
         <div className="auth-google">
           <GoogleLogin

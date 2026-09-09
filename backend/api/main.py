@@ -107,4 +107,4 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
 
 @app.get("/")
 def root():
-    return {"message": "API is runningggggggggggg"}
+    return {"message": "API is runningg"}

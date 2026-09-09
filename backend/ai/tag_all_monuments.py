@@ -9,7 +9,7 @@ import requests
 import psycopg2
 from psycopg2.extras import RealDictCursor
 
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:admin@localhost:5433/tourism_app_db")
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:admin@localhost:15432/tourism_app_db")
 AI_URL = os.getenv("AI_SERVICE_URL", "http://localhost:8001")
 
 BATCH_SIZE = 20

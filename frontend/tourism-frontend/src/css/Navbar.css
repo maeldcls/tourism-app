@@ -1,18 +1,22 @@
 .navbar {
-  --navbar-accent: #c3d62e;
-  --navbar-ink: #1c1c1c;
+  --navbar-bg: #ffffff;
+  --navbar-ink: #241b2e;
+  --navbar-muted: rgba(36, 27, 46, 0.4);
+  --navbar-accent-from: #5dd39e;
+  --navbar-accent-to: #348aa7;
 
   position: fixed;
   bottom: 18px;
   left: 16px;
   right: 16px;
   height: 62px;
-  background: var(--navbar-ink);
+  background: var(--navbar-bg);
+  border: 1px solid #e7e1e8;
   border-radius: 999px;
   display: flex;
   align-items: stretch;
   padding: 0 6px;
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 10px 28px rgba(81, 59, 86, 0.16);
   z-index: 100;
 }
 
@@ -21,11 +25,11 @@
   top: 50%;
   width: 44px;
   height: 44px;
-  background: var(--navbar-accent);
+  background: linear-gradient(135deg, var(--navbar-accent-from), var(--navbar-accent-to));
   border-radius: 50%;
   transform: translate(-50%, -50%);
   transition: left 0.32s cubic-bezier(0.34, 1.4, 0.64, 1);
-  box-shadow: 0 2px 10px rgba(195, 214, 46, 0.45);
+  box-shadow: 0 4px 14px rgba(52, 138, 167, 0.4);
   pointer-events: none;
 }
 
@@ -35,14 +39,14 @@
   align-items: center;
   justify-content: center;
   text-decoration: none;
-  color: rgba(255, 255, 255, 0.55);
+  color: var(--navbar-muted);
   position: relative;
   z-index: 1;
   transition: color 0.25s;
 }
 
 .navbar-item--active {
-  color: var(--navbar-ink);
+  color: #fff;
 }
 
 .navbar-icon {

@@ -8,8 +8,8 @@
   --home-mint: #5dd39e;
   --home-teal: #348aa7;
   --home-teal-dark: #276a80;
-  --home-navy: #1e3a5f;
-  --home-navy-dark: #142944;
+  --home-slate: #525174;
+  --home-plum: #513b56;
 
   padding-bottom: 6rem;
   min-height: 100dvh;
@@ -19,10 +19,29 @@
 /* ── Hero ─────────────────────────────────────────────────────────────── */
 .home-hero {
   padding: max(2.2rem, env(safe-area-inset-top)) 1.25rem 2.5rem;
-  background: linear-gradient(160deg, var(--home-navy) 0%, var(--home-navy-dark) 55%, var(--home-teal-dark) 100%);
+  background: linear-gradient(160deg, var(--home-slate) 0%, var(--home-plum) 55%, var(--home-teal-dark) 100%);
   color: #fff;
   border-radius: 0 0 28px 28px;
   margin-bottom: 1.5rem;
+}
+
+.home-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1.1rem;
+}
+
+.home-brand-logo {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+}
+
+.home-brand-name {
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
 }
 
 .home-hero-title {
@@ -56,7 +75,7 @@
   border: none;
   border-radius: 16px;
   background: var(--home-surface);
-  box-shadow: 0 10px 28px rgba(30, 58, 95, 0.18);
+  box-shadow: 0 10px 28px rgba(81, 59, 86, 0.18);
   cursor: pointer;
   text-align: left;
   color: var(--home-ink);
@@ -123,7 +142,7 @@
   min-height: 150px;
   background-size: cover;
   background-position: center;
-  background-color: var(--home-navy);
+  background-color: var(--home-plum);
   display: flex;
   align-items: flex-end;
   overflow: hidden;

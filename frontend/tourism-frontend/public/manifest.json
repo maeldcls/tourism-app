@@ -1,7 +1,7 @@
 {
-  "short_name": "TourismeApp",
-  "name": "Carte Touristique Interactive",
-  "description": "Application de tourisme avec carte interactive et recommandations personnalisées",
+  "short_name": "Sillage",
+  "name": "Sillage",
+  "description": "Sillage — application de tourisme avec carte interactive et recommandations personnalisées",
   "icons": [
     {
       "src": "favicon.ico",
@@ -23,7 +23,7 @@
   ],
   "start_url": ".",
   "display": "standalone",
-  "theme_color": "#2196F3",
+  "theme_color": "#276A80",
   "background_color": "#ffffff",
   "orientation": "any",
   "categories": ["travel", "tourism", "maps"]

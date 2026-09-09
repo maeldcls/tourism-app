@@ -262,7 +262,7 @@ DB_PARAMS = {
     "user":     "postgres",
     "password": "admin",
     "host":     "127.0.0.1",
-    "port":     5433,
+    "port":     15432,
 }
 
 BATCH_SIZE = 500
@@ -319,15 +319,17 @@ def load(pois: list[tuple], images_by_osm: dict[int, list[str]]):
             cur.execute(f"DELETE FROM monument_images WHERE monument_id IN ({placeholders})", chunk)
 
         image_rows = [
-            (osm_to_db_id[osm_id], url)
+            (osm_to_db_id[osm_id], url, "api", "approved")
             for osm_id, urls in images_by_osm.items()
             if osm_id in osm_to_db_id
             for url in urls
         ]
-        cur.executemany(
-            "INSERT INTO monument_images (monument_id, image_url) VALUES (%s, %s)",
-            image_rows,
-        )
+        for start in range(0, len(image_rows), BATCH_SIZE):
+            batch = image_rows[start:start + BATCH_SIZE]
+            cur.executemany(
+                "INSERT INTO monument_images (monument_id, image_url, source, status) VALUES (%s, %s, %s, %s)",
+                batch,
+            )
         conn.commit()
         print(f"  {len(image_rows):,} images insérées pour {len(osm_to_db_id):,} monuments.")
     finally:
