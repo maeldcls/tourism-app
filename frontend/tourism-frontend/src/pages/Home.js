@@ -6,7 +6,7 @@ import { CATEGORIES } from '../utils/monumentCategories';
 import HorizontalRail from '../components/HorizontalRail';
 import HomeMonumentTile from '../components/HomeMonumentTile';
 import API_URL from '../config';
-import logo from '../assets/logo.webp';
+import logo from '../assets/logo.png';
 import '../css/Home.css';
 
 const API = API_URL;

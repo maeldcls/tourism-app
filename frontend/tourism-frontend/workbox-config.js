@@ -1,3 +1,11 @@
+// Même variable d'env que src/config.js : REACT_APP_API_URL est injectée par le
+// Dockerfile (ARG/ENV) avant `npm run build`, donc disponible ici en prod comme
+// en dev. On échappe les caractères spéciaux (., :, /) pour construire un regex
+// sûr à partir de l'URL, quelle que soit l'origine (localhost en dev, domaine
+// réel en prod).
+const API_URL = (process.env.REACT_APP_API_URL || 'http://localhost:8000').replace(/\/$/, '');
+const API_ORIGIN_REGEX = new RegExp('^' + API_URL.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '/');
+
 module.exports = {
   // Dossier source contenant les fichiers buildés
   globDirectory: 'build/',
@@ -45,8 +53,10 @@ module.exports = {
     },
     {
       // Cache les requêtes API avec stratégie Network First
-      // (essaie le réseau d'abord, puis le cache si hors-ligne)
-      urlPattern: /^http:\/\/localhost:8000\/api\/.*/,
+      // (essaie le réseau d'abord, puis le cache si hors-ligne).
+      // Les routes n'ont pas de préfixe /api (/visits, /trips, /monuments...),
+      // donc on matche tout ce qui part de l'origine de l'API.
+      urlPattern: API_ORIGIN_REGEX,
       handler: 'NetworkFirst',
       options: {
         cacheName: 'api-cache',

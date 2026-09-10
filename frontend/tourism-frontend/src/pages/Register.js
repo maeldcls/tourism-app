@@ -4,7 +4,7 @@ import axios from 'axios';
 import { GoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../context/AuthContext';
 import API_URL from '../config';
-import logo from '../assets/logo.webp';
+import logo from '../assets/logo.png';
 import '../css/Auth.css';
 
 export default function Register() {

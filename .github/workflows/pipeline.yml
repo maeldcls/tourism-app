@@ -116,9 +116,6 @@ jobs:
 
   # ============================================================
   # 4. DÉPLOIEMENT SSH — RUNCLOUD
-  #    Copie docker-compose.prod.yml sur le serveur,
-  #    pull les nouvelles images et redémarre les containers.
-  #    Le fichier .env doit exister sur le serveur (créé une seule fois manuellement).
   # ============================================================
   deploy:
     name: Deploy — RunCloud

@@ -224,7 +224,7 @@ npm test
 Le pipeline GitHub Actions (`.github/workflows/pipeline.yml`) :
 1. Détecte les services modifiés (frontend / api / ai)
 2. Lance les tests correspondants
-3. Sur `main`, build et pousse les images Docker sur Docker Hub (`maeldcls/tourism-api`, `maeldcls/tourism-ai`, `maeldcls/tourism-frontend`)
+3. Sur `main`, build et pousse les images Docker sur Docker Hub (`<utilisateur-dockerhub>/tourism-api`, `<utilisateur-dockerhub>/tourism-ai`, `<utilisateur-dockerhub>/tourism-frontend`)
 
 
 

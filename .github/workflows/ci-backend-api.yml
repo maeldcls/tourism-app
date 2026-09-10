@@ -41,9 +41,6 @@ jobs:
       - name: Run tests
         working-directory: backend/api
         env:
-          # PostgreSQL disponible pour les futurs tests d'intégration.
-          # Les tests actuels utilisent SQLite (conftest.py), donc cette URL
-          # n'est pas encore utilisée mais est prête à l'emploi.
           DATABASE_URL: postgresql://postgres:ci_test_password@localhost:5432/tourism_test_db
           SECRET_KEY: ci-test-secret-key-not-used-in-prod
         run: pytest tests/ -v

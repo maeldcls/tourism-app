@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
   <head>
     <meta charset="utf-8" />
     <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
@@ -8,8 +8,31 @@
     <meta name="color-scheme" content="light" />
     <meta
       name="description"
-      content="Sillage — carte touristique interactive avec recommandations personnalisées. Découvrez des lieux touristiques et planifiez vos visites."
+      content="Sillage, l'application de tourisme : découvrez des monuments et lieux touristiques sur une carte interactive, recevez des recommandations personnalisées et planifiez vos itinéraires de voyage à partager entre amis."
     />
+    <link rel="canonical" href="https://tourism-app.projets-cda.garage404.com/" />
+
+    <!-- Open Graph (partage sur réseaux sociaux, messageries...) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Sillage" />
+    <meta property="og:locale" content="fr_FR" />
+    <meta property="og:title" content="Sillage — Application de tourisme et carte interactive des monuments" />
+    <meta
+      property="og:description"
+      content="Découvrez des monuments sur une carte interactive, obtenez des recommandations personnalisées et planifiez vos trajets de voyage entre amis."
+    />
+    <meta property="og:url" content="https://tourism-app.projets-cda.garage404.com/" />
+    <meta property="og:image" content="%PUBLIC_URL%/logo512.png" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Sillage — Application de tourisme et carte interactive des monuments" />
+    <meta
+      name="twitter:description"
+      content="Découvrez des monuments sur une carte interactive, obtenez des recommandations personnalisées et planifiez vos trajets de voyage entre amis."
+    />
+    <meta name="twitter:image" content="%PUBLIC_URL%/logo512.png" />
+
     <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
     <!--
       manifest.json provides metadata used when your web app is installed on a
@@ -25,7 +48,28 @@
       work correctly both with client-side routing and a non-root public URL.
       Learn how to configure a non-root public URL by running `npm run build`.
     -->
-    <title>Sillage</title>
+    <title>Sillage — Application de tourisme et carte interactive des monuments</title>
+
+    <!--
+      Pas de balise meta "keywords" : les moteurs de recherche (Google en tête)
+      l'ignorent complètement depuis longtemps et ne s'en servent plus pour le
+      classement — les mots-clés utiles vivent dans le <title>, la description
+      et ce JSON-LD, que les moteurs lisent réellement.
+    -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "Sillage",
+        "alternateName": "Sillage — Application de tourisme",
+        "description": "Application de tourisme avec carte interactive des monuments, recommandations personnalisées et planification de trajets de voyage entre amis.",
+        "url": "https://tourism-app.projets-cda.garage404.com/",
+        "applicationCategory": "TravelApplication",
+        "operatingSystem": "Any (application web / PWA)",
+        "inLanguage": "fr",
+        "keywords": "application tourisme, tourisme, carte touristique interactive, monuments, visiter des monuments, lieux touristiques, points d'intérêt, itinéraire de voyage, planifier un voyage, recommandations personnalisées, carnet de voyage, voyage entre amis, patrimoine, guide touristique, Sillage"
+      }
+    </script>
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>
