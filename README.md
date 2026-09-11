@@ -14,7 +14,6 @@ Application web de tourisme permettant de découvrir des monuments et points d'i
 - [Structure du projet](#structure-du-projet)
 - [Tests](#tests)
 - [CI/CD](#cicd)
-- [Documentation](#documentation)
 
 ## Objectif du projet
 
@@ -228,8 +227,6 @@ Le pipeline GitHub Actions (`.github/workflows/pipeline.yml`) :
 
 
 
-## Documentation
 
-Les diagrammes UML du projet (classes, MCD, MPD, séquence, déploiement, cas d'usage...) sont disponibles dans [`docs/uml/`](docs/uml/) au format PlantUML. Pour les visualiser, ouvrir le contenu d'un fichier `.puml` sur [PlantText](https://www.planttext.com/).
 
 auteur : maeldcls
