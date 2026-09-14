@@ -12,6 +12,8 @@
   --home-plum: #513b56;
 
   padding-bottom: 6rem;
+  max-width: 600px;
+  margin: 0 auto;
   min-height: 100dvh;
   background: var(--home-bg);
 }
